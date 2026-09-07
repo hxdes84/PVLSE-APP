@@ -22,3 +22,134 @@
     --muted: rgba(245,243,248,0.55);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--paper); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+  body { display: flex; justify-content: center; }
+  #app {
+    width: 100%; max-width: 460px; min-height: 100vh;
+    background:
+      radial-gradient(circle at 15% 0%, rgba(255,47,168,0.16) 0%, transparent 45%),
+      radial-gradient(circle at 90% 15%, rgba(47,217,255,0.14) 0%, transparent 40%),
+      var(--bg);
+    display: flex; flex-direction: column; position: relative;
+  }
+  .screen { padding: max(28px, env(safe-area-inset-top)) 22px calc(100px + env(safe-area-inset-bottom)); flex: 1; }
+  .brand {
+    font-family: Georgia, serif; font-weight: 700; font-size: 15px; letter-spacing: 0.14em;
+    background: linear-gradient(90deg, var(--pink), var(--blue));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    margin-bottom: 6px;
+  }
+  h1 { font-family: Georgia, serif; font-weight: 400; font-size: 30px; line-height: 1.2; margin-bottom: 10px; }
+  .sub { color: var(--muted); font-size: 15px; line-height: 1.5; margin-bottom: 30px; }
+
+  .role-grid { display: flex; flex-direction: column; gap: 14px; }
+  .role-card {
+    border: 1px solid var(--blue-dim); border-radius: 6px; padding: 22px 20px;
+    background: rgba(47,217,255,0.04); cursor: pointer;
+    box-shadow: 0 0 0 rgba(47,217,255,0); transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .role-card:active { box-shadow: 0 0 22px rgba(47,217,255,0.25); border-color: var(--blue); }
+  .role-card h3 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .role-card p { color: var(--muted); font-size: 14px; }
+
+  .topbar { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 22px; }
+  .topbar .brand { margin-bottom: 0; }
+  .role-pill { font-size: 12px; color: var(--muted); border: 1px solid var(--line); padding: 4px 10px; border-radius: 20px; }
+
+  .event-card { border-top: 1px solid var(--line); padding: 18px 0; cursor: pointer; }
+  .event-card:last-child { border-bottom: 1px solid var(--line); }
+  .event-date { font-size: 12px; color: var(--blue); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; text-shadow: 0 0 12px rgba(47,217,255,0.5); }
+  .event-title { font-size: 19px; font-weight: 600; margin-bottom: 4px; }
+  .event-meta { font-size: 14px; color: var(--muted); }
+  .event-going { font-size: 13px; color: var(--pink); margin-top: 8px; text-shadow: 0 0 10px rgba(255,47,168,0.5); }
+
+  .fab {
+    position: fixed; bottom: 26px; left: 50%; transform: translateX(calc(-50% + 165px));
+    background: var(--pink); color: #0a0510; border: none; width: 56px; height: 56px; border-radius: 50%;
+    font-size: 28px; box-shadow: 0 0 24px rgba(255,47,168,0.55), 0 6px 20px rgba(0,0,0,0.4);
+  }
+
+  .back-btn { background: none; border: none; color: var(--muted); font-size: 15px; margin-bottom: 20px; cursor: pointer; padding: 0; }
+
+  .detail-title { font-size: 26px; font-family: Georgia, serif; margin-bottom: 8px; }
+  .detail-row { display: flex; gap: 10px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 15px; }
+  .detail-row:last-of-type { border-bottom: 1px solid var(--line); margin-bottom: 24px; }
+  .detail-label { color: var(--muted); width: 90px; flex-shrink: 0; }
+  .detail-desc { color: var(--muted); font-size: 15px; line-height: 1.6; margin: 20px 0; }
+
+  .attendee-list { margin: 20px 0; }
+  try {
+    const raw = localStorage.getItem(EVENTS_KEY);
+    state.events = raw ? JSON.parse(raw) : defaultEvents;
+    if (!raw) await saveEvents();
+  } catch (e) {
+    state.events = defaultEvents;
+  }
+}
+
+async function saveEvents() {
+  try {
+    localStorage.setItem(EVENTS_KEY, JSON.stringify(state.events));
+    flashSaved();
+  } catch (e) {
+    console.error('Échec de la sauvegarde', e);
+  }
+}
+
+async function init() {
+  await loadProfile();
+  await loadEvents();
+  state.ready = true;
+  state.screen = state.profile ? 'feed' : 'role-select';
+  render();
+}
+
+  ]));
+  screen.appendChild(grid);
+  return screen;
+}
+
+function NameEntryScreen() {
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'role-select'; render(); }}));
+  screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
+  screen.appendChild(el('h1', {text: 'Comment on t\'appelle ?'}));
+  screen.appendChild(el('p', {class: 'sub', text: 'Ton prénom sera visible par les autres — c\'est comme ça qu\'on te reconnaît sur les soirées.'}));
+  const nameInput = el('input', {placeholder: 'Ton prénom'});
+  screen.appendChild(el('div', {class: 'field'}, [nameInput]));
+  const submitBtn = el('button', {
+    class: 'primary', text: 'Continuer',
+    onclick: async () => {
+      const name = nameInput.value.trim();
+      if (!name) return;
+      submitBtn.disabled = true;
+      state.profile = { name, role: state.pendingRole };
+      await saveProfile();
+      state.screen = 'feed';
+      render();
+    }
+  });
+  screen.appendChild(submitBtn);
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Heure'}), timeInput]));
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Lieu'}), placeInput]));
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Description'}), descInput]));
+  const submitBtn = el('button', {
+    class: 'primary', text: 'Publier la soirée',
+    onclick: async () => {
+      if (!titleInput.value || !dateInput.value || !placeInput.value) return;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Publication…';
+      state.events.unshift({ id: Date.now(), title: titleInput.value, date: dateInput.value, time: timeInput.value || '', place: placeInput.value, desc: descInput.value || '', attendees: [] });
+      await saveEvents();
+      state.screen = 'feed';
+      render();
+    }
+  });
+  screen.appendChild(submitBtn);
+  return screen;
+}
+
+init();
+</script>
+</body>
+</html>
