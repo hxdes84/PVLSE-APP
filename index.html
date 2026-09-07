@@ -78,6 +78,71 @@
   .detail-desc { color: var(--muted); font-size: 15px; line-height: 1.6; margin: 20px 0; }
 
   .attendee-list { margin: 20px 0; }
+  .attendee-list h4 { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; font-weight: 600; }
+  .attendee-chip { display: inline-block; font-size: 13px; background: rgba(255,47,168,0.1); border: 1px solid var(--pink-dim); color: var(--paper); padding: 5px 12px; border-radius: 20px; margin: 0 6px 6px 0; }
+
+  button.primary {
+    width: 100%; background: var(--pink); color: #0a0510; border: none; padding: 16px; border-radius: 6px;
+    font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 0 20px rgba(255,47,168,0.4);
+  }
+  button.primary.going { background: transparent; border: 1px solid var(--blue); color: var(--blue); box-shadow: 0 0 14px rgba(47,217,255,0.3); }
+  button.primary:disabled { opacity: 0.5; box-shadow: none; }
+
+  input, textarea {
+    width: 100%; background: rgba(245,243,248,0.05); border: 1px solid var(--line); color: var(--paper);
+    padding: 13px 14px; border-radius: 6px; font-size: 15px; margin-bottom: 14px; font-family: inherit;
+  }
+  input:focus, textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 12px rgba(47,217,255,0.3); }
+  textarea { min-height: 90px; resize: vertical; }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .field { margin-bottom: 16px; }
+
+  .empty { color: var(--muted); font-size: 15px; padding: 30px 0; text-align: center; }
+  .loading { display: flex; align-items: center; justify-content: center; min-height: 100vh; color: var(--muted); font-size: 14px; }
+  .save-indicator { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--muted); opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
+  .save-indicator.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="app"><div class="loading">Chargement…</div></div>
+
+<script>
+const EVENTS_KEY = 'pulse-events';
+const PROFILE_KEY = 'pulse-profile';
+
+let state = {
+  profile: null, // { name, role }
+  screen: 'role-select',
+  pendingRole: null,
+  currentEventId: null,
+  events: [],
+  ready: false
+};
+
+const defaultEvents = [
+  { id: 1, title: "Soirée Bachata Sensual", date: "Ven 12 sept.", time: "21h00", place: "La Salsatheque, Marseille", desc: "Soirée mensuelle bachata sensual avec initiation à 21h puis social dansant. Ambiance conviviale, tous niveaux bienvenus.", attendees: ["Léa", "Marc", "Sofia"] },
+  { id: 2, title: "Kizomba Open Air", date: "Sam 13 sept.", time: "19h30", place: "Parc Borély, Marseille", desc: "Session kizomba en plein air, entrée libre. Amenez vos amis, on danse jusqu'au coucher du soleil.", attendees: ["Nina", "Karim", "Julie", "Yanis"] },
+  { id: 3, title: "Salsa Cubaine — Cours + Social", date: "Dim 14 sept.", time: "18h00", place: "Studio 6, Aix-en-Provence", desc: "Cours niveau intermédiaire à 18h, social à partir de 19h30.", attendees: [] }
+];
+
+async function loadProfile() {
+  try {
+    const raw = localStorage.getItem(PROFILE_KEY);
+    state.profile = raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    state.profile = null;
+  }
+}
+
+async function saveProfile() {
+  try {
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(state.profile));
+  } catch (e) {
+    console.error('Échec sauvegarde profil', e);
+  }
+}
+
+async function loadEvents() {
   try {
     const raw = localStorage.getItem(EVENTS_KEY);
     state.events = raw ? JSON.parse(raw) : defaultEvents;
@@ -104,6 +169,51 @@ async function init() {
   render();
 }
 
+let flashTimeout;
+function flashSaved() {
+  const ind = document.getElementById('save-indicator');
+  if (!ind) return;
+  ind.classList.add('show');
+  clearTimeout(flashTimeout);
+  flashTimeout = setTimeout(() => ind.classList.remove('show'), 900);
+}
+
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+  if (!state.ready) { app.appendChild(el('div', {class: 'loading', text: 'Chargement…'})); return; }
+
+  app.appendChild(el('div', {class: 'save-indicator', id: 'save-indicator', text: 'Sauvegardé'}));
+  if (state.screen === 'role-select') app.appendChild(RoleSelectScreen());
+  else if (state.screen === 'name-entry') app.appendChild(NameEntryScreen());
+  else if (state.screen === 'feed') app.appendChild(FeedScreen());
+  else if (state.screen === 'detail') app.appendChild(DetailScreen());
+  else if (state.screen === 'create') app.appendChild(CreateScreen());
+}
+
+function el(tag, attrs = {}, children = []) {
+  const e = document.createElement(tag);
+  for (const k in attrs) {
+    if (k === 'text') e.textContent = attrs[k];
+    else if (k === 'html') e.innerHTML = attrs[k];
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), attrs[k]);
+    else e.setAttribute(k, attrs[k]);
+  }
+  (Array.isArray(children) ? children : [children]).forEach(c => c && e.appendChild(c));
+  return e;
+}
+
+function RoleSelectScreen() {
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
+  screen.appendChild(el('h1', {text: 'Bienvenue.'}));
+  screen.appendChild(el('p', {class: 'sub', text: 'Dis-nous qui tu es pour commencer.'}));
+  const grid = el('div', {class: 'role-grid'});
+  grid.appendChild(el('div', { class: 'role-card', onclick: () => { state.pendingRole = 'dancer'; state.screen = 'name-entry'; render(); } }, [
+    el('h3', {text: 'Je suis danseur·se'}), el('p', {text: 'Trouve les soirées près de toi et dis si tu y vas.'})
+  ]));
+  grid.appendChild(el('div', { class: 'role-card', onclick: () => { state.pendingRole = 'organizer'; state.screen = 'name-entry'; render(); } }, [
+    el('h3', {text: 'Je suis organisateur·rice'}), el('p', {text: 'Publie tes soirées et suis qui vient.'})
   ]));
   screen.appendChild(grid);
   return screen;
@@ -130,6 +240,97 @@ function NameEntryScreen() {
     }
   });
   screen.appendChild(submitBtn);
+  return screen;
+}
+
+function FeedScreen() {
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('div', {class: 'topbar'}, [
+    el('div', {class: 'brand', text: 'PULSE'}),
+    el('div', {
+      class: 'role-pill', text: (state.profile.role === 'dancer' ? 'Danseur·se' : 'Organisateur·rice') + ' · ' + state.profile.name + '  ⇄',
+      style: 'cursor:pointer',
+      onclick: async () => {
+        state.profile = null;
+        try { await window.storage.delete(PROFILE_KEY, false); } catch (e) {}
+        state.screen = 'role-select';
+        render();
+      }
+    })
+  ]));
+  screen.appendChild(el('h1', {text: 'Soirées à venir'}));
+  if (state.events.length === 0) {
+    screen.appendChild(el('div', {class: 'empty', text: 'Aucune soirée pour le moment.'}));
+  } else {
+    state.events.forEach(ev => {
+      const going = ev.attendees.includes(state.profile.name);
+      const card = el('div', { class: 'event-card', onclick: () => { state.currentEventId = ev.id; state.screen = 'detail'; render(); } }, [
+        el('div', {class: 'event-date', text: ev.date + ' · ' + ev.time}),
+        el('div', {class: 'event-title', text: ev.title}),
+        el('div', {class: 'event-meta', text: ev.place})
+      ]);
+      if (going) card.appendChild(el('div', {class: 'event-going', text: '✓ Tu y vas'}));
+      screen.appendChild(card);
+    });
+  }
+  if (state.profile.role === 'organizer') {
+    screen.appendChild(el('button', {class: 'fab', text: '+', onclick: () => { state.screen = 'create'; render(); }}));
+  }
+  return screen;
+}
+
+function DetailScreen() {
+  const ev = state.events.find(e => e.id === state.currentEventId);
+  const going = ev.attendees.includes(state.profile.name);
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'feed'; render(); }}));
+  screen.appendChild(el('div', {class: 'event-date', text: ev.date + ' · ' + ev.time}));
+  screen.appendChild(el('div', {class: 'detail-title', text: ev.title}));
+  screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Lieu'}), el('div', {text: ev.place})]));
+  screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Participants'}), el('div', {text: ev.attendees.length + ' inscrit·e·s'})]));
+  screen.appendChild(el('div', {class: 'detail-desc', text: ev.desc}));
+
+  if (state.profile.role === 'organizer') {
+    const attList = el('div', {class: 'attendee-list'});
+    attList.appendChild(el('h4', {text: 'Qui vient'}));
+    if (ev.attendees.length === 0) {
+      attList.appendChild(el('div', {class: 'empty', text: 'Personne pour l\'instant.'}));
+    } else {
+      ev.attendees.forEach(name => attList.appendChild(el('span', {class: 'attendee-chip', text: name})));
+    }
+    screen.appendChild(attList);
+  }
+
+  if (state.profile.role === 'dancer') {
+    screen.appendChild(el('button', {
+      class: 'primary' + (going ? ' going' : ''),
+      text: going ? '✓ Tu y vas — annuler' : "J'y vais",
+      onclick: async () => {
+        if (going) {
+          ev.attendees = ev.attendees.filter(n => n !== state.profile.name);
+        } else {
+          ev.attendees.push(state.profile.name);
+        }
+        render();
+        await saveEvents();
+      }
+    }));
+  }
+  return screen;
+}
+
+function CreateScreen() {
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'feed'; render(); }}));
+  screen.appendChild(el('h1', {text: 'Nouvelle soirée'}));
+  screen.appendChild(el('p', {class: 'sub', text: 'Renseigne les infos, les danseurs verront ta soirée dans le flux.'}));
+  const titleInput = el('input', {placeholder: 'Titre de la soirée'});
+  const dateInput = el('input', {placeholder: 'Date (ex. Ven 12 sept.)'});
+  const timeInput = el('input', {placeholder: 'Heure (ex. 21h00)'});
+  const placeInput = el('input', {placeholder: 'Lieu'});
+  const descInput = el('textarea', {placeholder: 'Description'});
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Titre'}), titleInput]));
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Date'}), dateInput]));
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Heure'}), timeInput]));
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Lieu'}), placeInput]));
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Description'}), descInput]));
