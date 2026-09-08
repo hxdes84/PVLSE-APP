@@ -89,6 +89,15 @@
   .style-wrap { display: flex; flex-wrap: wrap; margin-bottom: 20px; }
   .style-chip-sm { display: inline-block; font-size: 12px; border: 1px solid var(--blue-dim); color: var(--blue); padding: 4px 11px; border-radius: 16px; margin: 0 6px 6px 0; font-weight: 600; }
 
+  .topbar-actions { display: flex; align-items: center; gap: 10px; }
+  .icon-btn { background: none; border: 1px solid var(--line); color: var(--muted); font-size: 13px; padding: 5px 11px; border-radius: 20px; cursor: pointer; font-weight: 600; }
+
+  .sort-row { display: flex; gap: 8px; margin-bottom: 20px; }
+  .sort-chip { font-size: 13px; border: 1px solid var(--line); color: var(--muted); padding: 7px 14px; border-radius: 20px; cursor: pointer; font-weight: 600; }
+  .sort-chip.active { border-color: var(--pink); color: var(--pink); background: rgba(255,47,168,0.08); }
+
+  .event-price { font-size: 12px; color: var(--muted); font-weight: 600; }
+
   button.primary {
     width: 100%; background: var(--pink); color: #0a0510; border: none; padding: 16px; border-radius: 6px;
     font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 0 20px rgba(255,47,168,0.4);
@@ -149,7 +158,8 @@ let state = {
   currentEventId: null,
   pendingRole: null,
   pendingStyles: [],
-  authError: ''
+  authError: '',
+  sortBy: 'recent'
 };
 
 let unsubEvents = null;
@@ -191,6 +201,7 @@ function render() {
   else if (state.screen === 'feed') app.appendChild(FeedScreen());
   else if (state.screen === 'detail') app.appendChild(DetailScreen());
   else if (state.screen === 'create') app.appendChild(CreateScreen());
+  else if (state.screen === 'profile') app.appendChild(ProfileScreen());
 }
 
 function el(tag, attrs = {}, children = []) {
@@ -385,23 +396,48 @@ function FeedScreen() {
   const screen = el('div', {class: 'screen'});
   screen.appendChild(el('div', {class: 'topbar'}, [
     el('div', {class: 'brand', text: 'PULSE'}),
-    el('div', {
-      class: 'role-pill', text: (state.profile.role === 'dancer' ? 'Danseur·se' : 'Organisateur·rice') + ' · ' + state.profile.name + '  ⇄',
-      style: 'cursor:pointer',
-      onclick: async () => { await signOut(auth); }
-    })
+    el('div', {class: 'topbar-actions'}, [
+      el('button', {class: 'icon-btn', text: 'Profil', onclick: () => { state.screen = 'profile'; render(); }}),
+      el('div', {
+        class: 'role-pill', text: (state.profile.role === 'dancer' ? 'Danseur·se' : 'Organisateur·rice') + '  ⇄',
+        style: 'cursor:pointer',
+        onclick: async () => { await signOut(auth); }
+      })
+    ])
   ]));
   screen.appendChild(el('h1', {text: 'Soirées à venir'}));
-  if (state.events.length === 0) {
+
+  const sortRow = el('div', {class: 'sort-row'});
+  sortRow.appendChild(el('span', {
+    class: 'sort-chip' + (state.sortBy === 'recent' ? ' active' : ''), text: 'Récentes',
+    onclick: () => { state.sortBy = 'recent'; render(); }
+  }));
+  sortRow.appendChild(el('span', {
+    class: 'sort-chip' + (state.sortBy === 'popular' ? ' active' : ''), text: 'Popularité',
+    onclick: () => { state.sortBy = 'popular'; render(); }
+  }));
+  sortRow.appendChild(el('span', {
+    class: 'sort-chip' + (state.sortBy === 'price' ? ' active' : ''), text: 'Prix',
+    onclick: () => { state.sortBy = 'price'; render(); }
+  }));
+  screen.appendChild(sortRow);
+
+  let events = [...state.events];
+  if (state.sortBy === 'popular') events.sort((a, b) => (b.attendees||[]).length - (a.attendees||[]).length);
+  else if (state.sortBy === 'price') events.sort((a, b) => (a.price||0) - (b.price||0));
+  else events.sort((a, b) => (b.createdAt||0) - (a.createdAt||0));
+
+  if (events.length === 0) {
     screen.appendChild(el('div', {class: 'empty', text: 'Aucune soirée pour le moment.'}));
   } else {
-    state.events.forEach(ev => {
+    events.forEach(ev => {
       const attendees = ev.attendees || [];
       const going = attendees.some(a => a.uid === state.user.uid);
       const card = el('div', { class: 'event-card', onclick: () => { state.currentEventId = ev.id; state.screen = 'detail'; render(); } }, [
         el('div', {class: 'event-date', text: ev.date + ' · ' + ev.time}),
         el('div', {class: 'event-title', text: ev.title}),
-        el('div', {class: 'event-meta', text: ev.place})
+        el('div', {class: 'event-meta', text: ev.place}),
+        el('div', {class: 'event-price', text: (ev.price ? ev.price + ' €' : 'Gratuit') + ' · ' + attendees.length + ' inscrit·e·s'})
       ]);
       if (going) card.appendChild(el('div', {class: 'event-going', text: '✓ Tu y vas'}));
       screen.appendChild(card);
@@ -410,6 +446,55 @@ function FeedScreen() {
   if (state.profile.role === 'organizer') {
     screen.appendChild(el('button', {class: 'fab', text: '+', onclick: () => { state.screen = 'create'; render(); }}));
   }
+  return screen;
+}
+
+function ProfileScreen() {
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'feed'; render(); }}));
+  screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
+  screen.appendChild(el('h1', {text: 'Ton profil'}));
+
+  const nameInput = el('input', {placeholder: 'Ton prénom'});
+  nameInput.value = state.profile.name;
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Prénom'}), nameInput]));
+
+  screen.appendChild(el('div', {class: 'field'}, [
+    el('label', {text: 'Rôle'}),
+    el('div', {text: state.profile.role === 'dancer' ? 'Danseur·se' : 'Organisateur·rice', style: 'padding:6px 0; color:var(--muted); font-weight:600;'})
+  ]));
+
+  let localStyles = [...(state.profile.danceStyles || [])];
+  screen.appendChild(el('label', {text: 'Danses pratiquées'}));
+  const styleWrap = el('div', {class: 'style-wrap'});
+  DANCE_STYLES.forEach(style => {
+    const active = localStyles.includes(style);
+    const chip = el('span', {
+      class: 'style-chip' + (active ? ' active' : ''), text: style,
+      onclick: () => {
+        if (localStyles.includes(style)) localStyles = localStyles.filter(s => s !== style);
+        else localStyles.push(style);
+        chip.className = 'style-chip' + (localStyles.includes(style) ? ' active' : '');
+      }
+    });
+    styleWrap.appendChild(chip);
+  });
+  screen.appendChild(styleWrap);
+
+  const btn = el('button', {
+    class: 'primary', text: 'Enregistrer',
+    onclick: async () => {
+      const name = nameInput.value.trim();
+      if (!name) return;
+      btn.disabled = true; btn.textContent = 'Enregistrement…';
+      const updated = { ...state.profile, name, danceStyles: localStyles };
+      await updateDoc(doc(db, 'users', state.user.uid), { name, danceStyles: localStyles });
+      state.profile = updated;
+      state.screen = 'feed';
+      render();
+    }
+  });
+  screen.appendChild(btn);
   return screen;
 }
 
@@ -423,19 +508,18 @@ function DetailScreen() {
   screen.appendChild(el('div', {class: 'event-date', text: ev.date + ' · ' + ev.time}));
   screen.appendChild(el('div', {class: 'detail-title', text: ev.title}));
   screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Lieu'}), el('div', {text: ev.place})]));
+  screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Prix'}), el('div', {text: ev.price ? ev.price + ' €' : 'Gratuit'})]));
   screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Participants'}), el('div', {text: attendees.length + ' inscrit·e·s'})]));
   screen.appendChild(el('div', {class: 'detail-desc', text: ev.desc}));
 
-  if (state.profile.role === 'organizer') {
-    const attList = el('div', {class: 'attendee-list'});
-    attList.appendChild(el('h4', {text: 'Qui vient'}));
-    if (attendees.length === 0) {
-      attList.appendChild(el('div', {class: 'empty', text: 'Personne pour l\'instant.'}));
-    } else {
-      attendees.forEach(a => attList.appendChild(el('span', {class: 'attendee-chip', text: a.name})));
-    }
-    screen.appendChild(attList);
+  const attList = el('div', {class: 'attendee-list'});
+  attList.appendChild(el('h4', {text: 'Qui vient'}));
+  if (attendees.length === 0) {
+    attList.appendChild(el('div', {class: 'empty', text: 'Personne pour l\'instant.'}));
+  } else {
+    attendees.forEach(a => attList.appendChild(el('span', {class: 'attendee-chip', text: a.name})));
   }
+  screen.appendChild(attList);
 
   if (state.profile.role === 'dancer') {
     screen.appendChild(el('button', {
@@ -462,11 +546,13 @@ function CreateScreen() {
   const dateInput = el('input', {placeholder: 'Date (ex. Ven 12 sept.)'});
   const timeInput = el('input', {placeholder: 'Heure (ex. 21h00)'});
   const placeInput = el('input', {placeholder: 'Lieu'});
+  const priceInput = el('input', {placeholder: 'Prix en € (laisser vide si gratuit)', type: 'number', min: '0'});
   const descInput = el('textarea', {placeholder: 'Description'});
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Titre'}), titleInput]));
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Date'}), dateInput]));
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Heure'}), timeInput]));
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Lieu'}), placeInput]));
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Prix'}), priceInput]));
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Description'}), descInput]));
   const submitBtn = el('button', {
     class: 'primary', text: 'Publier la soirée',
@@ -476,7 +562,8 @@ function CreateScreen() {
       submitBtn.textContent = 'Publication…';
       await addDoc(collection(db, 'events'), {
         title: titleInput.value, date: dateInput.value, time: timeInput.value || '',
-        place: placeInput.value, desc: descInput.value || '', attendees: [],
+        place: placeInput.value, price: priceInput.value ? Number(priceInput.value) : 0,
+        desc: descInput.value || '', attendees: [],
         organizerUid: state.user.uid, createdAt: Date.now()
       });
       state.screen = 'feed';
