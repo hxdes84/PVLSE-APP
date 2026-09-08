@@ -260,26 +260,63 @@ function SignupScreen() {
   screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
   screen.appendChild(el('h1', {text: 'Créer un compte'}));
   if (state.authError) screen.appendChild(el('div', {class: 'error-msg', text: state.authError}));
+
+  const nameInput = el('input', {placeholder: 'Ton prénom'});
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Prénom'}), nameInput]));
+
   const emailInput = el('input', {placeholder: 'Email', type: 'email'});
   const passInput = el('input', {placeholder: 'Mot de passe (6 caractères min.)', type: 'password'});
-  screen.appendChild(el('div', {class: 'field'}, [emailInput]));
-  screen.appendChild(el('div', {class: 'field'}, [passInput]));
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Email'}), emailInput]));
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Mot de passe'}), passInput]));
+
+  screen.appendChild(el('label', {text: 'Tu es'}));
+  const roleGrid = el('div', {class: 'role-grid', style: 'margin-bottom:20px'});
+  const dancerCard = el('div', { class: 'role-card', onclick: () => { state.pendingRole = 'dancer'; render(); } }, [
+    el('h3', {text: 'Danseur·se'})
+  ]);
+  const orgCard = el('div', { class: 'role-card', onclick: () => { state.pendingRole = 'organizer'; render(); } }, [
+    el('h3', {text: 'Organisateur·rice'})
+  ]);
+  if (state.pendingRole === 'dancer') dancerCard.style.borderColor = 'var(--blue)';
+  if (state.pendingRole === 'organizer') orgCard.style.borderColor = 'var(--blue)';
+  roleGrid.appendChild(dancerCard);
+  roleGrid.appendChild(orgCard);
+  screen.appendChild(roleGrid);
+
+  screen.appendChild(el('label', {text: 'Danses pratiquées'}));
+  const styleWrap = el('div', {class: 'style-wrap'});
+  DANCE_STYLES.forEach(style => {
+    const active = state.pendingStyles.includes(style);
+    const chip = el('span', {
+      class: 'style-chip' + (active ? ' active' : ''), text: style,
+      onclick: () => {
+        if (state.pendingStyles.includes(style)) state.pendingStyles = state.pendingStyles.filter(s => s !== style);
+        else state.pendingStyles.push(style);
+        render();
+      }
+    });
+    styleWrap.appendChild(chip);
+  });
+  screen.appendChild(styleWrap);
+
   const btn = el('button', {
-    class: 'primary', text: 'Continuer',
+    class: 'primary', text: 'Créer mon compte',
     onclick: async () => {
       state.authError = '';
-      if (!emailInput.value.trim() || passInput.value.length < 6) {
-        state.authError = 'Email valide et mot de passe de 6 caractères minimum.';
-        render();
-        return;
-      }
+      const name = nameInput.value.trim();
+      if (!name) { state.authError = 'Renseigne ton prénom.'; render(); return; }
+      if (!emailInput.value.trim() || passInput.value.length < 6) { state.authError = 'Email valide et mot de passe de 6 caractères minimum.'; render(); return; }
+      if (!state.pendingRole) { state.authError = 'Choisis si tu es danseur·se ou organisateur·rice.'; render(); return; }
       btn.disabled = true; btn.textContent = 'Création…';
       try {
-        await createUserWithEmailAndPassword(auth, emailInput.value.trim(), passInput.value);
-        // onAuthStateChanged prend le relais → écran complete-profile
+        const cred = await createUserWithEmailAndPassword(auth, emailInput.value.trim(), passInput.value);
+        const profile = { name, role: state.pendingRole, danceStyles: state.pendingStyles };
+        await setDoc(doc(db, 'users', cred.user.uid), profile);
+        state.profile = profile;
+        // onAuthStateChanged va aussi se déclencher et charger le profil, mais on l'a déjà en state
       } catch (e) {
         state.authError = e.code === 'auth/email-already-in-use' ? 'Cet email est déjà utilisé.' : 'Erreur : ' + e.message;
-        btn.disabled = false; btn.textContent = 'Continuer';
+        btn.disabled = false; btn.textContent = 'Créer mon compte';
         render();
       }
     }
@@ -289,6 +326,8 @@ function SignupScreen() {
 }
 
 function CompleteProfileScreen() {
+  // Filet de sécurité : ne devrait plus arriver puisque le profil est créé en même temps que le compte,
+  // mais reste utile si un compte existe côté Auth sans document 'users' correspondant.
   const screen = el('div', {class: 'screen'});
   screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
   screen.appendChild(el('h1', {text: 'Ton profil'}));
