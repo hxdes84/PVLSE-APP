@@ -137,7 +137,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, updateDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyC4kEGp0Z-u1fPWkbprJLOqprqyveDec0E",
@@ -231,6 +231,7 @@ function render() {
   else if (state.screen === 'feed') app.appendChild(FeedScreen());
   else if (state.screen === 'detail') app.appendChild(DetailScreen());
   else if (state.screen === 'create') app.appendChild(CreateScreen());
+  else if (state.screen === 'edit') app.appendChild(EditScreen());
   else if (state.screen === 'profile') app.appendChild(ProfileScreen());
 }
 
@@ -428,6 +429,7 @@ function FeedScreen() {
     el('div', {class: 'brand', text: 'PULSE'}),
     el('div', {class: 'topbar-actions'}, [
       el('button', {class: 'icon-btn', text: 'Profil', onclick: () => { state.screen = 'profile'; render(); }}),
+      state.profile.isCreator ? el('span', {class: 'dept-badge', text: '★ Créateur·rice', style: 'margin-bottom:0'}) : null,
       el('div', {
         class: 'role-pill', text: (state.profile.role === 'dancer' ? 'Danseur·se' : 'Organisateur·rice') + '  ⇄',
         style: 'cursor:pointer',
@@ -510,6 +512,16 @@ function ProfileScreen() {
     el('div', {text: state.profile.role === 'dancer' ? 'Danseur·se' : 'Organisateur·rice', style: 'padding:6px 0; color:var(--muted); font-weight:600;'})
   ]));
 
+  let localIsCreator = !!state.profile.isCreator;
+  const creatorChip = el('span', {
+    class: 'style-chip' + (localIsCreator ? ' active' : ''), text: '★ Créateur·rice de Pulse',
+    onclick: () => {
+      localIsCreator = !localIsCreator;
+      creatorChip.className = 'style-chip' + (localIsCreator ? ' active' : '');
+    }
+  });
+  screen.appendChild(el('div', {class: 'style-wrap'}, [creatorChip]));
+
   let localStyles = [...(state.profile.danceStyles || [])];
   screen.appendChild(el('label', {text: 'Danses pratiquées'}));
   const styleWrap = el('div', {class: 'style-wrap'});
@@ -533,8 +545,8 @@ function ProfileScreen() {
       const name = nameInput.value.trim();
       if (!name) return;
       btn.disabled = true; btn.textContent = 'Enregistrement…';
-      const updated = { ...state.profile, name, danceStyles: localStyles };
-      await updateDoc(doc(db, 'users', state.user.uid), { name, danceStyles: localStyles });
+      const updated = { ...state.profile, name, danceStyles: localStyles, isCreator: localIsCreator };
+      await updateDoc(doc(db, 'users', state.user.uid), { name, danceStyles: localStyles, isCreator: localIsCreator });
       state.profile = updated;
       state.screen = 'feed';
       render();
@@ -568,6 +580,28 @@ function DetailScreen() {
   }
   screen.appendChild(attList);
 
+  if (state.user.uid === ev.organizerUid) {
+    const manageRow = el('div', {style: 'display:flex; gap:10px; margin-bottom:20px;'});
+    manageRow.appendChild(el('button', {
+      class: 'secondary', text: 'Modifier', style: 'margin-top:0;',
+      onclick: () => { state.screen = 'edit'; render(); }
+    }));
+    manageRow.appendChild(el('button', {
+      class: 'secondary', text: 'Supprimer', style: 'margin-top:0; color:var(--pink); border-color:var(--pink-dim);',
+      onclick: async () => {
+        if (!confirm('Supprimer définitivement cette soirée ?')) return;
+        try {
+          await deleteDoc(doc(db, 'events', ev.id));
+          state.screen = 'feed';
+          render();
+        } catch (err) {
+          console.error('Échec suppression', err);
+        }
+      }
+    }));
+    screen.appendChild(manageRow);
+  }
+
   if (state.profile.role === 'dancer') {
     screen.appendChild(el('button', {
       class: 'primary' + (going ? ' going' : ''),
@@ -591,11 +625,12 @@ function DetailScreen() {
   return screen;
 }
 
-function CreateScreen() {
+function EventFormScreen(existingEvent) {
+  const isEdit = !!existingEvent;
   const screen = el('div', {class: 'screen'});
-  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'feed'; render(); }}));
-  screen.appendChild(el('h1', {text: 'Nouvelle soirée'}));
-  screen.appendChild(el('p', {class: 'sub', text: 'Renseigne les infos, les danseurs verront ta soirée dans le flux.'}));
+  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = isEdit ? 'detail' : 'feed'; render(); }}));
+  screen.appendChild(el('h1', {text: isEdit ? 'Modifier la soirée' : 'Nouvelle soirée'}));
+  if (!isEdit) screen.appendChild(el('p', {class: 'sub', text: 'Renseigne les infos, les danseurs verront ta soirée dans le flux.'}));
   const titleInput = el('input', {placeholder: 'Titre de la soirée'});
   const dateInput = el('input', {type: 'date'});
   const timeInput = el('input', {type: 'time'});
@@ -605,6 +640,17 @@ function CreateScreen() {
   DEPARTMENTS.forEach(d => deptSelect.appendChild(el('option', {text: d, value: d})));
   const priceInput = el('input', {placeholder: 'Prix en € (laisser vide si gratuit)', type: 'number', min: '0'});
   const descInput = el('textarea', {placeholder: 'Description'});
+
+  if (isEdit) {
+    titleInput.value = existingEvent.title || '';
+    dateInput.value = existingEvent.dateISO || '';
+    timeInput.value = existingEvent.time || '';
+    placeInput.value = existingEvent.place || '';
+    deptSelect.value = existingEvent.dept || '';
+    priceInput.value = existingEvent.price || '';
+    descInput.value = existingEvent.desc || '';
+  }
+
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Titre'}), titleInput]));
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Date'}), dateInput]));
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Heure'}), timeInput]));
@@ -613,23 +659,41 @@ function CreateScreen() {
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Prix'}), priceInput]));
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Description'}), descInput]));
   const submitBtn = el('button', {
-    class: 'primary', text: 'Publier la soirée',
+    class: 'primary', text: isEdit ? 'Enregistrer les modifications' : 'Publier la soirée',
     onclick: async () => {
       if (!titleInput.value || !dateInput.value || !placeInput.value || !deptSelect.value) return;
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Publication…';
-      await addDoc(collection(db, 'events'), {
+      submitBtn.textContent = isEdit ? 'Enregistrement…' : 'Publication…';
+      const payload = {
         title: titleInput.value, dateISO: dateInput.value, time: timeInput.value || '',
         place: placeInput.value, dept: deptSelect.value, price: priceInput.value ? Number(priceInput.value) : 0,
-        desc: descInput.value || '', attendees: [],
-        organizerUid: state.user.uid, createdAt: Date.now()
-      });
-      state.screen = 'feed';
-      render();
+        desc: descInput.value || ''
+      };
+      try {
+        if (isEdit) {
+          await updateDoc(doc(db, 'events', existingEvent.id), payload);
+          state.screen = 'detail';
+        } else {
+          await addDoc(collection(db, 'events'), { ...payload, attendees: [], organizerUid: state.user.uid, createdAt: Date.now() });
+          state.screen = 'feed';
+        }
+        render();
+      } catch (err) {
+        console.error('Échec enregistrement soirée', err);
+        submitBtn.disabled = false;
+        submitBtn.textContent = isEdit ? 'Enregistrer les modifications' : 'Publier la soirée';
+      }
     }
   });
   screen.appendChild(submitBtn);
   return screen;
+}
+
+function CreateScreen() { return EventFormScreen(null); }
+function EditScreen() {
+  const ev = state.events.find(e => e.id === state.currentEventId);
+  if (!ev) { state.screen = 'feed'; render(); return el('div'); }
+  return EventFormScreen(ev);
 }
 
 render();
