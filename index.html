@@ -172,6 +172,30 @@ const DEPARTMENTS = [
   "971 - Guadeloupe","972 - Martinique","973 - Guyane","974 - La Réunion","976 - Mayotte"
 ];
 
+const LEGAL_TEXT = `POLITIQUE DE CONFIDENTIALITÉ
+
+Pulse (version alpha) collecte : ton email et mot de passe (pour ton compte), ton prénom, ton rôle, tes danses pratiquées, et selon ton usage, les soirées que tu crées ou auxquelles tu participes.
+
+Ces données sont hébergées par Firebase (Google Cloud, Europe), conformes RGPD. Elles ne sont jamais vendues ni partagées à des fins commerciales.
+
+Tu peux demander l'accès, la rectification ou la suppression de tes données à tout moment en contactant l'équipe Pulse.
+
+Pulse n'utilise aucun cookie publicitaire ou traceur analytique.
+
+—
+
+CONDITIONS D'UTILISATION
+
+En créant un compte, tu t'engages à fournir des informations exactes.
+
+Organisateurs : vous êtes seuls responsables de l'exactitude des informations publiées (lieu, date, prix) et de votre autorisation à utiliser le lieu indiqué. Pulse est un simple intermédiaire de mise en relation, pas un organisateur d'événements, et ne vérifie pas ces informations.
+
+Danseurs : le "RSVP" est une indication d'intention, pas un engagement contractuel. Vous êtes responsables de votre comportement lors des soirées.
+
+Pulse ne garantit pas la tenue effective des soirées listées ni leur sécurité. Pulse se réserve le droit de retirer tout contenu ou compte ne respectant pas ces règles.
+
+Cette version alpha est un test — les fonctionnalités et conditions peuvent évoluer.`;
+
 function formatEventDate(iso) {
   if (!iso) return '';
   const d = new Date(iso + 'T00:00:00');
@@ -233,6 +257,7 @@ function render() {
   else if (state.screen === 'create') app.appendChild(CreateScreen());
   else if (state.screen === 'edit') app.appendChild(EditScreen());
   else if (state.screen === 'profile') app.appendChild(ProfileScreen());
+  else if (state.screen === 'legal') app.appendChild(LegalScreen());
 }
 
 function el(tag, attrs = {}, children = []) {
@@ -339,6 +364,17 @@ function SignupScreen() {
   });
   screen.appendChild(styleWrap);
 
+  const legalCheckbox = el('input', {type: 'checkbox', id: 'legal-accept', style: 'width:auto; margin-right:8px;'});
+  const legalRow = el('div', {style: 'display:flex; align-items:flex-start; gap:0; margin-bottom:20px; font-size:14px; color:var(--muted);'});
+  legalRow.appendChild(legalCheckbox);
+  const legalLabel = el('label', {style: 'text-transform:none; font-weight:500; letter-spacing:normal; margin:0; cursor:pointer;'});
+  legalLabel.setAttribute('for', 'legal-accept');
+  legalLabel.appendChild(document.createTextNode("J'ai lu et j'accepte les "));
+  const legalLink = el('span', {text: 'mentions légales et la politique de confidentialité', style: 'color:var(--blue); text-decoration:underline; cursor:pointer;', onclick: (e) => { e.preventDefault(); state.screen = 'legal'; render(); }});
+  legalLabel.appendChild(legalLink);
+  legalRow.appendChild(legalLabel);
+  screen.appendChild(legalRow);
+
   const btn = el('button', {
     class: 'primary', text: 'Créer mon compte',
     onclick: async () => {
@@ -347,10 +383,11 @@ function SignupScreen() {
       if (!name) { state.authError = 'Renseigne ton prénom.'; render(); return; }
       if (!emailInput.value.trim() || passInput.value.length < 6) { state.authError = 'Email valide et mot de passe de 6 caractères minimum.'; render(); return; }
       if (!state.pendingRole) { state.authError = 'Choisis si tu es danseur·se ou organisateur·rice.'; render(); return; }
+      if (!legalCheckbox.checked) { state.authError = 'Merci d\'accepter les mentions légales pour continuer.'; render(); return; }
       btn.disabled = true; btn.textContent = 'Création…';
       try {
         const cred = await createUserWithEmailAndPassword(auth, emailInput.value.trim(), passInput.value);
-        const profile = { name, role: state.pendingRole, danceStyles: state.pendingStyles };
+        const profile = { name, role: state.pendingRole, danceStyles: state.pendingStyles, acceptedLegalAt: Date.now() };
         await setDoc(doc(db, 'users', cred.user.uid), profile);
         state.profile = profile;
         // onAuthStateChanged va aussi se déclencher et charger le profil, mais on l'a déjà en state
@@ -469,6 +506,14 @@ function FeedScreen() {
   screen.appendChild(sortRow);
 
   let events = [...state.events];
+  const now = new Date();
+  events = events.filter(ev => {
+    if (!ev.dateISO) return true;
+    const hideAt = new Date(ev.dateISO + 'T00:00:00');
+    hideAt.setDate(hideAt.getDate() + 1);
+    hideAt.setHours(5, 0, 0, 0);
+    return now < hideAt;
+  });
   if (state.deptFilter) events = events.filter(ev => ev.dept === state.deptFilter);
   if (state.sortBy === 'popular') events.sort((a, b) => (b.attendees||[]).length - (a.attendees||[]).length);
   else if (state.sortBy === 'price') events.sort((a, b) => (a.price||0) - (b.price||0));
@@ -494,6 +539,18 @@ function FeedScreen() {
   if (state.profile.role === 'organizer') {
     screen.appendChild(el('button', {class: 'fab', text: '+', onclick: () => { state.screen = 'create'; render(); }}));
   }
+  return screen;
+}
+
+function LegalScreen() {
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = state.profile ? 'profile' : 'signup'; render(); }}));
+  screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
+  screen.appendChild(el('h1', {text: 'Mentions légales'}));
+  const pre = document.createElement('div');
+  pre.style.cssText = 'white-space:pre-wrap; color:var(--muted); font-size:14px; line-height:1.7; font-weight:500;';
+  pre.textContent = LEGAL_TEXT;
+  screen.appendChild(pre);
   return screen;
 }
 
@@ -553,6 +610,10 @@ function ProfileScreen() {
     }
   });
   screen.appendChild(btn);
+  screen.appendChild(el('button', {
+    class: 'secondary', text: 'Mentions légales & confidentialité',
+    onclick: () => { state.screen = 'legal'; render(); }
+  }));
   return screen;
 }
 
