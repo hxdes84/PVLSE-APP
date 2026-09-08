@@ -10,6 +10,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Pulse">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ff2fa8'/%3E%3Cstop offset='1' stop-color='%232fd9ff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='180' height='180' fill='%23060608'/%3E%3Ccircle cx='90' cy='90' r='58' fill='none' stroke='url(%23g)' stroke-width='10'/%3E%3Cpath d='M55 95 L75 95 L85 70 L100 120 L112 95 L128 95' fill='none' stroke='url(%23g)' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&family=Rajdhani:wght@500;600&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #060608;
@@ -22,7 +24,7 @@
     --muted: rgba(245,243,248,0.55);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; background: var(--bg); color: var(--paper); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+  html, body { height: 100%; background: var(--bg); color: var(--paper); font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
   body { display: flex; justify-content: center; }
   #app {
     width: 100%; max-width: 460px; min-height: 100vh;
@@ -34,13 +36,13 @@
   }
   .screen { padding: max(28px, env(safe-area-inset-top)) 22px calc(100px + env(safe-area-inset-bottom)); flex: 1; }
   .brand {
-    font-family: Georgia, serif; font-weight: 700; font-size: 15px; letter-spacing: 0.14em;
+    font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.22em;
     background: linear-gradient(90deg, var(--pink), var(--blue));
     -webkit-background-clip: text; background-clip: text; color: transparent;
     margin-bottom: 6px;
   }
-  h1 { font-family: Georgia, serif; font-weight: 400; font-size: 30px; line-height: 1.2; margin-bottom: 10px; }
-  .sub { color: var(--muted); font-size: 15px; line-height: 1.5; margin-bottom: 30px; }
+  h1 { font-family: 'Orbitron', sans-serif; font-weight: 600; font-size: 25px; line-height: 1.3; margin-bottom: 10px; letter-spacing: 0.01em; }
+  .sub { color: var(--muted); font-size: 16px; line-height: 1.5; margin-bottom: 30px; font-weight: 500; }
 
   .role-grid { display: flex; flex-direction: column; gap: 14px; }
   .role-card {
@@ -49,19 +51,19 @@
     box-shadow: 0 0 0 rgba(47,217,255,0); transition: box-shadow 0.2s ease, border-color 0.2s ease;
   }
   .role-card:active { box-shadow: 0 0 22px rgba(47,217,255,0.25); border-color: var(--blue); }
-  .role-card h3 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
-  .role-card p { color: var(--muted); font-size: 14px; }
+  .role-card h3 { font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 600; margin-bottom: 6px; letter-spacing: 0.02em; }
+  .role-card p { color: var(--muted); font-size: 15px; font-weight: 500; }
 
   .topbar { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 22px; }
   .topbar .brand { margin-bottom: 0; }
-  .role-pill { font-size: 12px; color: var(--muted); border: 1px solid var(--line); padding: 4px 10px; border-radius: 20px; }
+  .role-pill { font-size: 12px; color: var(--muted); border: 1px solid var(--line); padding: 4px 10px; border-radius: 20px; font-weight: 600; letter-spacing: 0.02em; }
 
   .event-card { border-top: 1px solid var(--line); padding: 18px 0; cursor: pointer; }
   .event-card:last-child { border-bottom: 1px solid var(--line); }
-  .event-date { font-size: 12px; color: var(--blue); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; text-shadow: 0 0 12px rgba(47,217,255,0.5); }
-  .event-title { font-size: 19px; font-weight: 600; margin-bottom: 4px; }
-  .event-meta { font-size: 14px; color: var(--muted); }
-  .event-going { font-size: 13px; color: var(--pink); margin-top: 8px; text-shadow: 0 0 10px rgba(255,47,168,0.5); }
+  .event-date { font-family: 'Orbitron', sans-serif; font-size: 11px; color: var(--blue); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; text-shadow: 0 0 12px rgba(47,217,255,0.5); }
+  .event-title { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  .event-meta { font-size: 15px; color: var(--muted); font-weight: 500; }
+  .event-going { font-size: 14px; color: var(--pink); margin-top: 8px; text-shadow: 0 0 10px rgba(255,47,168,0.5); font-weight: 600; }
 
   .fab {
     position: fixed; bottom: 26px; left: 50%; transform: translateX(calc(-50% + 165px));
@@ -69,123 +71,123 @@
     font-size: 28px; box-shadow: 0 0 24px rgba(255,47,168,0.55), 0 6px 20px rgba(0,0,0,0.4);
   }
 
-  .back-btn { background: none; border: none; color: var(--muted); font-size: 15px; margin-bottom: 20px; cursor: pointer; padding: 0; }
+  .back-btn { background: none; border: none; color: var(--muted); font-size: 15px; margin-bottom: 20px; cursor: pointer; padding: 0; font-weight: 600; }
+  .link-btn { background: none; border: none; color: var(--blue); font-size: 15px; cursor: pointer; padding: 0; font-weight: 600; text-shadow: 0 0 10px rgba(47,217,255,0.4); }
 
-  .detail-title { font-size: 26px; font-family: Georgia, serif; margin-bottom: 8px; }
+  .detail-title { font-family: 'Orbitron', sans-serif; font-size: 21px; font-weight: 600; margin-bottom: 8px; }
   .detail-row { display: flex; gap: 10px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 15px; }
   .detail-row:last-of-type { border-bottom: 1px solid var(--line); margin-bottom: 24px; }
-  .detail-label { color: var(--muted); width: 90px; flex-shrink: 0; }
-  .detail-desc { color: var(--muted); font-size: 15px; line-height: 1.6; margin: 20px 0; }
+  .detail-label { color: var(--muted); width: 90px; flex-shrink: 0; font-weight: 600; }
+  .detail-desc { color: var(--muted); font-size: 15px; line-height: 1.6; margin: 20px 0; font-weight: 500; }
 
   .attendee-list { margin: 20px 0; }
-  .attendee-list h4 { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; font-weight: 600; }
-  .attendee-chip { display: inline-block; font-size: 13px; background: rgba(255,47,168,0.1); border: 1px solid var(--pink-dim); color: var(--paper); padding: 5px 12px; border-radius: 20px; margin: 0 6px 6px 0; }
+  .attendee-list h4 { font-family: 'Orbitron', sans-serif; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; font-weight: 600; }
+  .attendee-chip { display: inline-block; font-size: 13px; background: rgba(255,47,168,0.1); border: 1px solid var(--pink-dim); color: var(--paper); padding: 5px 12px; border-radius: 20px; margin: 0 6px 6px 0; font-weight: 600; }
+
+  .style-chip { display: inline-block; font-size: 13px; border: 1px solid var(--line); color: var(--muted); padding: 7px 14px; border-radius: 20px; margin: 0 8px 8px 0; cursor: pointer; font-weight: 600; transition: all 0.15s ease; }
+  .style-chip.active { border-color: var(--blue); color: var(--blue); background: rgba(47,217,255,0.08); box-shadow: 0 0 10px rgba(47,217,255,0.25); }
+  .style-wrap { display: flex; flex-wrap: wrap; margin-bottom: 20px; }
+  .style-chip-sm { display: inline-block; font-size: 12px; border: 1px solid var(--blue-dim); color: var(--blue); padding: 4px 11px; border-radius: 16px; margin: 0 6px 6px 0; font-weight: 600; }
 
   button.primary {
     width: 100%; background: var(--pink); color: #0a0510; border: none; padding: 16px; border-radius: 6px;
     font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 0 20px rgba(255,47,168,0.4);
+    font-family: 'Rajdhani', sans-serif; letter-spacing: 0.03em;
   }
   button.primary.going { background: transparent; border: 1px solid var(--blue); color: var(--blue); box-shadow: 0 0 14px rgba(47,217,255,0.3); }
   button.primary:disabled { opacity: 0.5; box-shadow: none; }
+  button.secondary {
+    width: 100%; background: transparent; color: var(--muted); border: 1px solid var(--line); padding: 14px;
+    border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 10px;
+  }
 
   input, textarea {
     width: 100%; background: rgba(245,243,248,0.05); border: 1px solid var(--line); color: var(--paper);
-    padding: 13px 14px; border-radius: 6px; font-size: 15px; margin-bottom: 14px; font-family: inherit;
+    padding: 13px 14px; border-radius: 6px; font-size: 16px; margin-bottom: 14px; font-family: 'Rajdhani', sans-serif; font-weight: 500;
   }
   input:focus, textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 12px rgba(47,217,255,0.3); }
   textarea { min-height: 90px; resize: vertical; }
-  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
   .field { margin-bottom: 16px; }
+  .error-msg { color: var(--pink); font-size: 14px; margin-bottom: 14px; font-weight: 600; }
 
   .empty { color: var(--muted); font-size: 15px; padding: 30px 0; text-align: center; }
-  .loading { display: flex; align-items: center; justify-content: center; min-height: 100vh; color: var(--muted); font-size: 14px; }
-  .save-indicator { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--muted); opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
+  .loading { display: flex; align-items: center; justify-content: center; min-height: 100vh; color: var(--muted); font-size: 14px; font-family: 'Orbitron', sans-serif; letter-spacing: 0.05em; }
+  .save-indicator { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--blue); opacity: 0; transition: opacity 0.3s ease; pointer-events: none; font-family: 'Orbitron', sans-serif; letter-spacing: 0.05em; text-shadow: 0 0 10px rgba(47,217,255,0.5); }
   .save-indicator.show { opacity: 1; }
 </style>
 </head>
 <body>
-<div id="app"><div class="loading">Chargement…</div></div>
+<div id="app"><div class="loading">PULSE</div></div>
 
-<script>
-const EVENTS_KEY = 'pulse-events';
-const PROFILE_KEY = 'pulse-profile';
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, updateDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-let state = {
-  profile: null, // { name, role }
-  screen: 'role-select',
-  pendingRole: null,
-  currentEventId: null,
-  events: [],
-  ready: false
+const firebaseConfig = {
+  apiKey: "AIzaSyC4kEGp0Z-u1fPWkbprJLOqprqyveDec0E",
+  authDomain: "pvlse-app.firebaseapp.com",
+  projectId: "pvlse-app",
+  storageBucket: "pvlse-app.firebasestorage.app",
+  messagingSenderId: "475488095197",
+  appId: "1:475488095197:web:9aacb139f19611b75f4434"
 };
 
-const defaultEvents = [
-  { id: 1, title: "Soirée Bachata Sensual", date: "Ven 12 sept.", time: "21h00", place: "La Salsatheque, Marseille", desc: "Soirée mensuelle bachata sensual avec initiation à 21h puis social dansant. Ambiance conviviale, tous niveaux bienvenus.", attendees: ["Léa", "Marc", "Sofia"] },
-  { id: 2, title: "Kizomba Open Air", date: "Sam 13 sept.", time: "19h30", place: "Parc Borély, Marseille", desc: "Session kizomba en plein air, entrée libre. Amenez vos amis, on danse jusqu'au coucher du soleil.", attendees: ["Nina", "Karim", "Julie", "Yanis"] },
-  { id: 3, title: "Salsa Cubaine — Cours + Social", date: "Dim 14 sept.", time: "18h00", place: "Studio 6, Aix-en-Provence", desc: "Cours niveau intermédiaire à 18h, social à partir de 19h30.", attendees: [] }
-];
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
 
-async function loadProfile() {
-  try {
-    const raw = localStorage.getItem(PROFILE_KEY);
-    state.profile = raw ? JSON.parse(raw) : null;
-  } catch (e) {
+const DANCE_STYLES = ["Bachata", "Salsa", "Kizomba", "West Coast Swing", "Zouk", "Tango", "Autre"];
+
+let state = {
+  ready: false,
+  user: null,
+  profile: null,
+  events: [],
+  screen: 'loading',
+  currentEventId: null,
+  pendingRole: null,
+  pendingStyles: [],
+  authError: ''
+};
+
+let unsubEvents = null;
+
+function watchEvents() {
+  if (unsubEvents) return;
+  const q = query(collection(db, 'events'), orderBy('createdAt', 'desc'));
+  unsubEvents = onSnapshot(q, (snap) => {
+    state.events = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    render();
+  });
+}
+
+onAuthStateChanged(auth, async (user) => {
+  state.user = user;
+  if (user) {
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    state.profile = snap.exists() ? snap.data() : null;
+    watchEvents();
+    state.screen = state.profile ? 'feed' : 'complete-profile';
+  } else {
+    state.screen = 'welcome';
     state.profile = null;
   }
-}
-
-async function saveProfile() {
-  try {
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(state.profile));
-  } catch (e) {
-    console.error('Échec sauvegarde profil', e);
-  }
-}
-
-async function loadEvents() {
-  try {
-    const raw = localStorage.getItem(EVENTS_KEY);
-    state.events = raw ? JSON.parse(raw) : defaultEvents;
-    if (!raw) await saveEvents();
-  } catch (e) {
-    state.events = defaultEvents;
-  }
-}
-
-async function saveEvents() {
-  try {
-    localStorage.setItem(EVENTS_KEY, JSON.stringify(state.events));
-    flashSaved();
-  } catch (e) {
-    console.error('Échec de la sauvegarde', e);
-  }
-}
-
-async function init() {
-  await loadProfile();
-  await loadEvents();
   state.ready = true;
-  state.screen = state.profile ? 'feed' : 'role-select';
   render();
-}
-
-let flashTimeout;
-function flashSaved() {
-  const ind = document.getElementById('save-indicator');
-  if (!ind) return;
-  ind.classList.add('show');
-  clearTimeout(flashTimeout);
-  flashTimeout = setTimeout(() => ind.classList.remove('show'), 900);
-}
+});
 
 function render() {
   const app = document.getElementById('app');
   app.innerHTML = '';
-  if (!state.ready) { app.appendChild(el('div', {class: 'loading', text: 'Chargement…'})); return; }
+  if (!state.ready) { app.appendChild(el('div', {class: 'loading', text: 'PULSE'})); return; }
 
-  app.appendChild(el('div', {class: 'save-indicator', id: 'save-indicator', text: 'Sauvegardé'}));
-  if (state.screen === 'role-select') app.appendChild(RoleSelectScreen());
-  else if (state.screen === 'name-entry') app.appendChild(NameEntryScreen());
+  app.appendChild(el('div', {class: 'save-indicator', id: 'save-indicator', text: 'Sync'}));
+  if (state.screen === 'welcome') app.appendChild(WelcomeScreen());
+  else if (state.screen === 'signup') app.appendChild(SignupScreen());
+  else if (state.screen === 'login') app.appendChild(LoginScreen());
+  else if (state.screen === 'complete-profile') app.appendChild(CompleteProfileScreen());
   else if (state.screen === 'feed') app.appendChild(FeedScreen());
   else if (state.screen === 'detail') app.appendChild(DetailScreen());
   else if (state.screen === 'create') app.appendChild(CreateScreen());
@@ -203,43 +205,140 @@ function el(tag, attrs = {}, children = []) {
   return e;
 }
 
-function RoleSelectScreen() {
+let flashTimeout;
+function flashSaved() {
+  const ind = document.getElementById('save-indicator');
+  if (!ind) return;
+  ind.classList.add('show');
+  clearTimeout(flashTimeout);
+  flashTimeout = setTimeout(() => ind.classList.remove('show'), 900);
+}
+
+function WelcomeScreen() {
   const screen = el('div', {class: 'screen'});
   screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
   screen.appendChild(el('h1', {text: 'Bienvenue.'}));
-  screen.appendChild(el('p', {class: 'sub', text: 'Dis-nous qui tu es pour commencer.'}));
-  const grid = el('div', {class: 'role-grid'});
-  grid.appendChild(el('div', { class: 'role-card', onclick: () => { state.pendingRole = 'dancer'; state.screen = 'name-entry'; render(); } }, [
-    el('h3', {text: 'Je suis danseur·se'}), el('p', {text: 'Trouve les soirées près de toi et dis si tu y vas.'})
-  ]));
-  grid.appendChild(el('div', { class: 'role-card', onclick: () => { state.pendingRole = 'organizer'; state.screen = 'name-entry'; render(); } }, [
-    el('h3', {text: 'Je suis organisateur·rice'}), el('p', {text: 'Publie tes soirées et suis qui vient.'})
-  ]));
-  screen.appendChild(grid);
+  screen.appendChild(el('p', {class: 'sub', text: 'Connecte-toi ou crée ton compte pour continuer.'}));
+  screen.appendChild(el('button', {class: 'primary', text: 'Créer un compte', onclick: () => { state.screen = 'signup'; state.authError=''; render(); }}));
+  screen.appendChild(el('button', {class: 'secondary', text: 'J\'ai déjà un compte', onclick: () => { state.screen = 'login'; state.authError=''; render(); }}));
   return screen;
 }
 
-function NameEntryScreen() {
+function LoginScreen() {
   const screen = el('div', {class: 'screen'});
-  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'role-select'; render(); }}));
+  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'welcome'; render(); }}));
   screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
-  screen.appendChild(el('h1', {text: 'Comment on t\'appelle ?'}));
-  screen.appendChild(el('p', {class: 'sub', text: 'Ton prénom sera visible par les autres — c\'est comme ça qu\'on te reconnaît sur les soirées.'}));
-  const nameInput = el('input', {placeholder: 'Ton prénom'});
-  screen.appendChild(el('div', {class: 'field'}, [nameInput]));
-  const submitBtn = el('button', {
+  screen.appendChild(el('h1', {text: 'Connexion'}));
+  if (state.authError) screen.appendChild(el('div', {class: 'error-msg', text: state.authError}));
+  const emailInput = el('input', {placeholder: 'Email', type: 'email'});
+  const passInput = el('input', {placeholder: 'Mot de passe', type: 'password'});
+  screen.appendChild(el('div', {class: 'field'}, [emailInput]));
+  screen.appendChild(el('div', {class: 'field'}, [passInput]));
+  const btn = el('button', {
+    class: 'primary', text: 'Se connecter',
+    onclick: async () => {
+      state.authError = '';
+      btn.disabled = true; btn.textContent = 'Connexion…';
+      try {
+        await signInWithEmailAndPassword(auth, emailInput.value.trim(), passInput.value);
+      } catch (e) {
+        state.authError = 'Email ou mot de passe incorrect.';
+        btn.disabled = false; btn.textContent = 'Se connecter';
+        render();
+      }
+    }
+  });
+  screen.appendChild(btn);
+  return screen;
+}
+
+function SignupScreen() {
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'welcome'; render(); }}));
+  screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
+  screen.appendChild(el('h1', {text: 'Créer un compte'}));
+  if (state.authError) screen.appendChild(el('div', {class: 'error-msg', text: state.authError}));
+  const emailInput = el('input', {placeholder: 'Email', type: 'email'});
+  const passInput = el('input', {placeholder: 'Mot de passe (6 caractères min.)', type: 'password'});
+  screen.appendChild(el('div', {class: 'field'}, [emailInput]));
+  screen.appendChild(el('div', {class: 'field'}, [passInput]));
+  const btn = el('button', {
     class: 'primary', text: 'Continuer',
     onclick: async () => {
+      state.authError = '';
+      if (!emailInput.value.trim() || passInput.value.length < 6) {
+        state.authError = 'Email valide et mot de passe de 6 caractères minimum.';
+        render();
+        return;
+      }
+      btn.disabled = true; btn.textContent = 'Création…';
+      try {
+        await createUserWithEmailAndPassword(auth, emailInput.value.trim(), passInput.value);
+        // onAuthStateChanged prend le relais → écran complete-profile
+      } catch (e) {
+        state.authError = e.code === 'auth/email-already-in-use' ? 'Cet email est déjà utilisé.' : 'Erreur : ' + e.message;
+        btn.disabled = false; btn.textContent = 'Continuer';
+        render();
+      }
+    }
+  });
+  screen.appendChild(btn);
+  return screen;
+}
+
+function CompleteProfileScreen() {
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
+  screen.appendChild(el('h1', {text: 'Ton profil'}));
+  screen.appendChild(el('p', {class: 'sub', text: 'Dernière étape avant d\'entrer.'}));
+
+  const nameInput = el('input', {placeholder: 'Ton prénom'});
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Prénom'}), nameInput]));
+
+  screen.appendChild(el('label', {text: 'Tu es'}));
+  const roleGrid = el('div', {class: 'role-grid', style: 'margin-bottom:20px'});
+  const dancerCard = el('div', { class: 'role-card', onclick: () => { state.pendingRole = 'dancer'; render(); } }, [
+    el('h3', {text: 'Danseur·se'})
+  ]);
+  const orgCard = el('div', { class: 'role-card', onclick: () => { state.pendingRole = 'organizer'; render(); } }, [
+    el('h3', {text: 'Organisateur·rice'})
+  ]);
+  if (state.pendingRole === 'dancer') dancerCard.style.borderColor = 'var(--blue)';
+  if (state.pendingRole === 'organizer') orgCard.style.borderColor = 'var(--blue)';
+  roleGrid.appendChild(dancerCard);
+  roleGrid.appendChild(orgCard);
+  screen.appendChild(roleGrid);
+
+  screen.appendChild(el('label', {text: 'Danses pratiquées'}));
+  const styleWrap = el('div', {class: 'style-wrap'});
+  DANCE_STYLES.forEach(style => {
+    const active = state.pendingStyles.includes(style);
+    const chip = el('span', {
+      class: 'style-chip' + (active ? ' active' : ''), text: style,
+      onclick: () => {
+        if (state.pendingStyles.includes(style)) state.pendingStyles = state.pendingStyles.filter(s => s !== style);
+        else state.pendingStyles.push(style);
+        render();
+      }
+    });
+    styleWrap.appendChild(chip);
+  });
+  screen.appendChild(styleWrap);
+
+  const btn = el('button', {
+    class: 'primary', text: 'Entrer dans Pulse',
+    onclick: async () => {
       const name = nameInput.value.trim();
-      if (!name) return;
-      submitBtn.disabled = true;
-      state.profile = { name, role: state.pendingRole };
-      await saveProfile();
+      if (!name || !state.pendingRole) return;
+      btn.disabled = true; btn.textContent = 'Création…';
+      const profile = { name, role: state.pendingRole, danceStyles: state.pendingStyles };
+      await setDoc(doc(db, 'users', state.user.uid), profile);
+      state.profile = profile;
       state.screen = 'feed';
       render();
     }
   });
-  screen.appendChild(submitBtn);
+  screen.appendChild(btn);
   return screen;
 }
 
@@ -250,12 +349,7 @@ function FeedScreen() {
     el('div', {
       class: 'role-pill', text: (state.profile.role === 'dancer' ? 'Danseur·se' : 'Organisateur·rice') + ' · ' + state.profile.name + '  ⇄',
       style: 'cursor:pointer',
-      onclick: async () => {
-        state.profile = null;
-        try { await window.storage.delete(PROFILE_KEY, false); } catch (e) {}
-        state.screen = 'role-select';
-        render();
-      }
+      onclick: async () => { await signOut(auth); }
     })
   ]));
   screen.appendChild(el('h1', {text: 'Soirées à venir'}));
@@ -263,7 +357,8 @@ function FeedScreen() {
     screen.appendChild(el('div', {class: 'empty', text: 'Aucune soirée pour le moment.'}));
   } else {
     state.events.forEach(ev => {
-      const going = ev.attendees.includes(state.profile.name);
+      const attendees = ev.attendees || [];
+      const going = attendees.some(a => a.uid === state.user.uid);
       const card = el('div', { class: 'event-card', onclick: () => { state.currentEventId = ev.id; state.screen = 'detail'; render(); } }, [
         el('div', {class: 'event-date', text: ev.date + ' · ' + ev.time}),
         el('div', {class: 'event-title', text: ev.title}),
@@ -281,22 +376,24 @@ function FeedScreen() {
 
 function DetailScreen() {
   const ev = state.events.find(e => e.id === state.currentEventId);
-  const going = ev.attendees.includes(state.profile.name);
+  if (!ev) { state.screen = 'feed'; render(); return el('div'); }
+  const attendees = ev.attendees || [];
+  const going = attendees.some(a => a.uid === state.user.uid);
   const screen = el('div', {class: 'screen'});
   screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'feed'; render(); }}));
   screen.appendChild(el('div', {class: 'event-date', text: ev.date + ' · ' + ev.time}));
   screen.appendChild(el('div', {class: 'detail-title', text: ev.title}));
   screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Lieu'}), el('div', {text: ev.place})]));
-  screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Participants'}), el('div', {text: ev.attendees.length + ' inscrit·e·s'})]));
+  screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Participants'}), el('div', {text: attendees.length + ' inscrit·e·s'})]));
   screen.appendChild(el('div', {class: 'detail-desc', text: ev.desc}));
 
   if (state.profile.role === 'organizer') {
     const attList = el('div', {class: 'attendee-list'});
     attList.appendChild(el('h4', {text: 'Qui vient'}));
-    if (ev.attendees.length === 0) {
+    if (attendees.length === 0) {
       attList.appendChild(el('div', {class: 'empty', text: 'Personne pour l\'instant.'}));
     } else {
-      ev.attendees.forEach(name => attList.appendChild(el('span', {class: 'attendee-chip', text: name})));
+      attendees.forEach(a => attList.appendChild(el('span', {class: 'attendee-chip', text: a.name})));
     }
     screen.appendChild(attList);
   }
@@ -306,13 +403,11 @@ function DetailScreen() {
       class: 'primary' + (going ? ' going' : ''),
       text: going ? '✓ Tu y vas — annuler' : "J'y vais",
       onclick: async () => {
-        if (going) {
-          ev.attendees = ev.attendees.filter(n => n !== state.profile.name);
-        } else {
-          ev.attendees.push(state.profile.name);
-        }
-        render();
-        await saveEvents();
+        let newAttendees;
+        if (going) newAttendees = attendees.filter(a => a.uid !== state.user.uid);
+        else newAttendees = [...attendees, { uid: state.user.uid, name: state.profile.name }];
+        await updateDoc(doc(db, 'events', ev.id), { attendees: newAttendees });
+        flashSaved();
       }
     }));
   }
@@ -340,8 +435,11 @@ function CreateScreen() {
       if (!titleInput.value || !dateInput.value || !placeInput.value) return;
       submitBtn.disabled = true;
       submitBtn.textContent = 'Publication…';
-      state.events.unshift({ id: Date.now(), title: titleInput.value, date: dateInput.value, time: timeInput.value || '', place: placeInput.value, desc: descInput.value || '', attendees: [] });
-      await saveEvents();
+      await addDoc(collection(db, 'events'), {
+        title: titleInput.value, date: dateInput.value, time: timeInput.value || '',
+        place: placeInput.value, desc: descInput.value || '', attendees: [],
+        organizerUid: state.user.uid, createdAt: Date.now()
+      });
       state.screen = 'feed';
       render();
     }
@@ -350,7 +448,7 @@ function CreateScreen() {
   return screen;
 }
 
-init();
+render();
 </script>
 </body>
 </html>
