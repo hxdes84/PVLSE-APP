@@ -22,6 +22,14 @@
     --blue-dim: #2fd9ff55;
     --line: rgba(245,243,248,0.12);
     --muted: rgba(245,243,248,0.55);
+    --card-bg: transparent;
+  }
+  #app[data-theme="light"] {
+    --bg: #f2f0f6;
+    --paper: #16121c;
+    --line: rgba(22,18,28,0.12);
+    --muted: rgba(22,18,28,0.55);
+    --card-bg: rgba(22,18,28,0.02);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; background: var(--bg); color: var(--paper); font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
@@ -32,9 +40,20 @@
       radial-gradient(circle at 15% 0%, rgba(255,47,168,0.16) 0%, transparent 45%),
       radial-gradient(circle at 90% 15%, rgba(47,217,255,0.14) 0%, transparent 40%),
       var(--bg);
-    display: flex; flex-direction: column; position: relative;
+    display: flex; flex-direction: column; position: relative; transition: background 0.3s ease, color 0.3s ease;
   }
-  .screen { padding: max(28px, env(safe-area-inset-top)) 22px calc(100px + env(safe-area-inset-bottom)); flex: 1; }
+  .screen { padding: max(28px, env(safe-area-inset-top)) 22px calc(100px + env(safe-area-inset-bottom)); flex: 1; position: relative; animation: screenIn 0.45s ease; overflow: hidden; }
+  @keyframes screenIn {
+    0% { opacity: 0; transform: translateY(6px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  .screen::before {
+    content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--blue), var(--pink), transparent);
+    animation: sweep 0.6s ease-out forwards; box-shadow: 0 0 12px rgba(47,217,255,0.6);
+  }
+  @keyframes sweep { 0% { left: -100%; } 100% { left: 100%; } }
+
   .brand {
     font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.22em;
     background: linear-gradient(90deg, var(--pink), var(--blue));
@@ -54,16 +73,30 @@
   .role-card h3 { font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 600; margin-bottom: 6px; letter-spacing: 0.02em; }
   .role-card p { color: var(--muted); font-size: 15px; font-weight: 500; }
 
-  .topbar { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 22px; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
   .topbar .brand { margin-bottom: 0; }
+  .topbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .role-pill { font-size: 12px; color: var(--muted); border: 1px solid var(--line); padding: 4px 10px; border-radius: 20px; font-weight: 600; letter-spacing: 0.02em; }
+  .icon-btn { background: none; border: 1px solid var(--line); color: var(--muted); font-size: 13px; padding: 5px 11px; border-radius: 20px; cursor: pointer; font-weight: 600; }
 
-  .event-card { border-top: 1px solid var(--line); padding: 18px 0; cursor: pointer; }
+  .search-input { margin-bottom: 14px; }
+  .filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .sort-row { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .sort-chip { font-size: 13px; border: 1px solid var(--line); color: var(--muted); padding: 7px 14px; border-radius: 20px; cursor: pointer; font-weight: 600; }
+  .sort-chip.active { border-color: var(--pink); color: var(--pink); background: rgba(255,47,168,0.08); }
+
+  .event-card { border-top: 1px solid var(--line); padding: 18px 0; cursor: pointer; position: relative; background: var(--card-bg); }
   .event-card:last-child { border-bottom: 1px solid var(--line); }
   .event-date { font-family: 'Orbitron', sans-serif; font-size: 11px; color: var(--blue); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; text-shadow: 0 0 12px rgba(47,217,255,0.5); }
-  .event-title { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
-  .event-meta { font-size: 15px; color: var(--muted); font-weight: 500; }
-  .event-going { font-size: 14px; color: var(--pink); margin-top: 8px; text-shadow: 0 0 10px rgba(255,47,168,0.5); font-weight: 600; }
+  .event-title { font-size: 19px; font-weight: 600; margin-bottom: 4px; padding-right: 40px; }
+  .event-meta { font-size: 14px; color: var(--muted); font-weight: 500; }
+  .event-going { font-size: 13px; color: var(--pink); margin-top: 8px; text-shadow: 0 0 10px rgba(255,47,168,0.5); font-weight: 600; }
+  .event-price { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .dept-badge { font-size: 11px; color: var(--blue); font-weight: 600; border: 1px solid var(--blue-dim); padding: 2px 8px; border-radius: 12px; display: inline-block; margin-bottom: 6px; }
+  .cancelled-badge { font-size: 11px; color: var(--pink); font-weight: 700; border: 1px solid var(--pink-dim); padding: 2px 8px; border-radius: 12px; display: inline-block; margin-bottom: 6px; text-transform: uppercase; }
+
+  .fav-btn { position: absolute; top: 18px; right: 0; background: none; border: none; font-size: 22px; cursor: pointer; color: var(--line); line-height: 1; }
+  .fav-btn.active { color: var(--pink); text-shadow: 0 0 10px rgba(255,47,168,0.6); }
 
   .fab {
     position: fixed; bottom: 26px; left: 50%; transform: translateX(calc(-50% + 165px));
@@ -72,63 +105,68 @@
   }
 
   .back-btn { background: none; border: none; color: var(--muted); font-size: 15px; margin-bottom: 20px; cursor: pointer; padding: 0; font-weight: 600; }
-  .link-btn { background: none; border: none; color: var(--blue); font-size: 15px; cursor: pointer; padding: 0; font-weight: 600; text-shadow: 0 0 10px rgba(47,217,255,0.4); }
+  .link-btn { background: none; border: none; color: var(--blue); font-size: 14px; cursor: pointer; padding: 0; font-weight: 600; text-shadow: 0 0 10px rgba(47,217,255,0.4); }
 
   .detail-title { font-family: 'Orbitron', sans-serif; font-size: 21px; font-weight: 600; margin-bottom: 8px; }
   .detail-row { display: flex; gap: 10px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 15px; }
   .detail-row:last-of-type { border-bottom: 1px solid var(--line); margin-bottom: 24px; }
-  .detail-label { color: var(--muted); width: 90px; flex-shrink: 0; font-weight: 600; }
+  .detail-label { color: var(--muted); width: 100px; flex-shrink: 0; font-weight: 600; }
   .detail-desc { color: var(--muted); font-size: 15px; line-height: 1.6; margin: 20px 0; font-weight: 500; }
 
   .attendee-list { margin: 20px 0; }
   .attendee-list h4 { font-family: 'Orbitron', sans-serif; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; font-weight: 600; }
-  .attendee-chip { display: inline-block; font-size: 13px; background: rgba(255,47,168,0.1); border: 1px solid var(--pink-dim); color: var(--paper); padding: 5px 12px; border-radius: 20px; margin: 0 6px 6px 0; font-weight: 600; }
+  .attendee-chip { display: inline-block; font-size: 13px; background: rgba(255,47,168,0.1); border: 1px solid var(--pink-dim); color: var(--paper); padding: 5px 12px; border-radius: 20px; margin: 0 6px 6px 0; font-weight: 600; cursor: pointer; }
 
   .style-chip { display: inline-block; font-size: 13px; border: 1px solid var(--line); color: var(--muted); padding: 7px 14px; border-radius: 20px; margin: 0 8px 8px 0; cursor: pointer; font-weight: 600; transition: all 0.15s ease; }
   .style-chip.active { border-color: var(--blue); color: var(--blue); background: rgba(47,217,255,0.08); box-shadow: 0 0 10px rgba(47,217,255,0.25); }
   .style-wrap { display: flex; flex-wrap: wrap; margin-bottom: 20px; }
-  .style-chip-sm { display: inline-block; font-size: 12px; border: 1px solid var(--blue-dim); color: var(--blue); padding: 4px 11px; border-radius: 16px; margin: 0 6px 6px 0; font-weight: 600; }
-
-  .topbar-actions { display: flex; align-items: center; gap: 10px; }
-  .icon-btn { background: none; border: 1px solid var(--line); color: var(--muted); font-size: 13px; padding: 5px 11px; border-radius: 20px; cursor: pointer; font-weight: 600; }
-
-  .sort-row { display: flex; gap: 8px; margin-bottom: 20px; }
-  .sort-chip { font-size: 13px; border: 1px solid var(--line); color: var(--muted); padding: 7px 14px; border-radius: 20px; cursor: pointer; font-weight: 600; }
-  .sort-chip.active { border-color: var(--pink); color: var(--pink); background: rgba(255,47,168,0.08); }
-
-  .event-price { font-size: 12px; color: var(--muted); font-weight: 600; }
-  .dept-badge { font-size: 11px; color: var(--blue); font-weight: 600; border: 1px solid var(--blue-dim); padding: 2px 8px; border-radius: 12px; display: inline-block; margin-bottom: 6px; }
-  select {
-    width: 100%; background: rgba(245,243,248,0.05); border: 1px solid var(--line); color: var(--paper);
-    padding: 13px 14px; border-radius: 6px; font-size: 16px; margin-bottom: 14px; font-family: 'Rajdhani', sans-serif; font-weight: 500;
-  }
 
   button.primary {
     width: 100%; background: var(--pink); color: #0a0510; border: none; padding: 16px; border-radius: 6px;
     font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 0 20px rgba(255,47,168,0.4);
-    font-family: 'Rajdhani', sans-serif; letter-spacing: 0.03em;
+    font-family: 'Rajdhani', sans-serif; letter-spacing: 0.03em; transition: transform 0.1s ease;
   }
+  button.primary:active { transform: scale(0.98); }
   button.primary.going { background: transparent; border: 1px solid var(--blue); color: var(--blue); box-shadow: 0 0 14px rgba(47,217,255,0.3); }
   button.primary:disabled { opacity: 0.5; box-shadow: none; }
   button.secondary {
     width: 100%; background: transparent; color: var(--muted); border: 1px solid var(--line); padding: 14px;
     border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 10px;
   }
+  button.danger-outline { color: var(--pink); border-color: var(--pink-dim); }
 
   input, textarea {
-    width: 100%; background: rgba(245,243,248,0.05); border: 1px solid var(--line); color: var(--paper);
+    width: 100%; background: rgba(128,128,140,0.07); border: 1px solid var(--line); color: var(--paper);
     padding: 13px 14px; border-radius: 6px; font-size: 16px; margin-bottom: 14px; font-family: 'Rajdhani', sans-serif; font-weight: 500;
   }
-  input:focus, textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 12px rgba(47,217,255,0.3); }
+  select {
+    width: 100%; background: rgba(128,128,140,0.07); border: 1px solid var(--line); color: var(--paper);
+    padding: 13px 14px; border-radius: 6px; font-size: 16px; margin-bottom: 14px; font-family: 'Rajdhani', sans-serif; font-weight: 500;
+  }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 12px rgba(47,217,255,0.3); }
   textarea { min-height: 90px; resize: vertical; }
   label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
   .field { margin-bottom: 16px; }
   .error-msg { color: var(--pink); font-size: 14px; margin-bottom: 14px; font-weight: 600; }
+  .info-msg { color: var(--blue); font-size: 14px; margin-bottom: 14px; font-weight: 600; }
 
   .empty { color: var(--muted); font-size: 15px; padding: 30px 0; text-align: center; }
   .loading { display: flex; align-items: center; justify-content: center; min-height: 100vh; color: var(--muted); font-size: 14px; font-family: 'Orbitron', sans-serif; letter-spacing: 0.05em; }
-  .save-indicator { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--blue); opacity: 0; transition: opacity 0.3s ease; pointer-events: none; font-family: 'Orbitron', sans-serif; letter-spacing: 0.05em; text-shadow: 0 0 10px rgba(47,217,255,0.5); }
+  .save-indicator { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--blue); opacity: 0; transition: opacity 0.3s ease; pointer-events: none; font-family: 'Orbitron', sans-serif; letter-spacing: 0.05em; text-shadow: 0 0 10px rgba(47,217,255,0.5); z-index: 50; }
   .save-indicator.show { opacity: 1; }
+
+  .offline-banner { background: var(--pink); color: #0a0510; font-size: 13px; font-weight: 700; text-align: center; padding: 8px; }
+  .notice-banner { border: 1px solid var(--pink-dim); background: rgba(255,47,168,0.08); border-radius: 6px; padding: 14px; margin-bottom: 14px; font-size: 14px; }
+  .notice-banner .title { color: var(--pink); font-weight: 700; margin-bottom: 4px; }
+  .verify-banner { border: 1px solid var(--blue-dim); background: rgba(47,217,255,0.08); border-radius: 6px; padding: 12px 14px; margin-bottom: 16px; font-size: 13px; color: var(--muted); }
+
+  .onboard-dots { display: flex; gap: 8px; justify-content: center; margin: 24px 0; }
+  .onboard-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+  .onboard-dot.active { background: var(--pink); box-shadow: 0 0 8px rgba(255,47,168,0.6); }
+
+  .checkbox-row { display: flex; align-items: flex-start; gap: 0; margin-bottom: 20px; font-size: 14px; color: var(--muted); }
+  .checkbox-row input { width: auto; margin-right: 8px; margin-top: 3px; }
+  .checkbox-row label { text-transform: none; font-weight: 500; letter-spacing: normal; margin: 0; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -136,7 +174,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -196,10 +234,35 @@ Pulse ne garantit pas la tenue effective des soirées listées ni leur sécurit�
 
 Cette version alpha est un test — les fonctionnalités et conditions peuvent évoluer.`;
 
+const AUTH_ERROR_MESSAGES = {
+  'auth/email-already-in-use': 'Cet email est déjà utilisé.',
+  'auth/invalid-email': 'Adresse email invalide.',
+  'auth/user-not-found': "Aucun compte ne correspond à cet email.",
+  'auth/wrong-password': 'Mot de passe incorrect.',
+  'auth/invalid-credential': 'Email ou mot de passe incorrect.',
+  'auth/too-many-requests': 'Trop de tentatives — réessaie dans quelques minutes.',
+  'auth/network-request-failed': 'Problème de connexion internet.',
+  'auth/weak-password': 'Mot de passe trop faible (6 caractères minimum).'
+};
+function friendlyAuthError(e) {
+  return AUTH_ERROR_MESSAGES[e.code] || ('Erreur : ' + e.message);
+}
+
 function formatEventDate(iso) {
   if (!iso) return '';
   const d = new Date(iso + 'T00:00:00');
   return d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+function todayISO() {
+  const n = new Date();
+  return n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0') + '-' + String(n.getDate()).padStart(2,'0');
+}
+function isEventHidden(ev) {
+  if (!ev.dateISO) return false;
+  const hideAt = new Date(ev.dateISO + 'T00:00:00');
+  hideAt.setDate(hideAt.getDate() + 1);
+  hideAt.setHours(5, 0, 0, 0);
+  return new Date() >= hideAt;
 }
 
 let state = {
@@ -209,12 +272,26 @@ let state = {
   events: [],
   screen: 'loading',
   currentEventId: null,
+  viewedProfileUid: null,
+  viewedProfile: null,
   pendingRole: null,
   pendingStyles: [],
   authError: '',
+  infoMsg: '',
   sortBy: 'date',
-  deptFilter: ''
+  deptFilter: '',
+  danceFilter: '',
+  searchQuery: '',
+  showFavoritesOnly: false,
+  onboardingStep: 0,
+  showOnboarding: false,
+  online: navigator.onLine,
+  countedViews: new Set(),
+  dismissedNotices: JSON.parse(localStorage.getItem('pulse-dismissed-notices') || '[]')
 };
+
+window.addEventListener('online', () => { state.online = true; render(); });
+window.addEventListener('offline', () => { state.online = false; render(); });
 
 let unsubEvents = null;
 
@@ -227,13 +304,23 @@ function watchEvents() {
   });
 }
 
+const urlParams = new URLSearchParams(window.location.search);
+const deepLinkEventId = urlParams.get('event');
+
 onAuthStateChanged(auth, async (user) => {
   state.user = user;
   if (user) {
     const snap = await getDoc(doc(db, 'users', user.uid));
     state.profile = snap.exists() ? snap.data() : null;
     watchEvents();
-    state.screen = state.profile ? 'feed' : 'complete-profile';
+    if (!state.profile) {
+      state.screen = 'complete-profile';
+    } else if (deepLinkEventId) {
+      state.currentEventId = deepLinkEventId;
+      state.screen = 'detail';
+    } else {
+      state.screen = 'feed';
+    }
   } else {
     state.screen = 'welcome';
     state.profile = null;
@@ -244,20 +331,29 @@ onAuthStateChanged(auth, async (user) => {
 
 function render() {
   const app = document.getElementById('app');
+  app.setAttribute('data-theme', (state.profile && state.profile.theme) === 'light' ? 'light' : 'dark');
   app.innerHTML = '';
   if (!state.ready) { app.appendChild(el('div', {class: 'loading', text: 'PULSE'})); return; }
 
+  if (!state.online) app.appendChild(el('div', {class: 'offline-banner', text: '📡 Pas de connexion internet'}));
   app.appendChild(el('div', {class: 'save-indicator', id: 'save-indicator', text: 'Sync'}));
+
+  if (state.showOnboarding) { app.appendChild(OnboardingScreen()); return; }
   if (state.screen === 'welcome') app.appendChild(WelcomeScreen());
   else if (state.screen === 'signup') app.appendChild(SignupScreen());
   else if (state.screen === 'login') app.appendChild(LoginScreen());
+  else if (state.screen === 'reset-password') app.appendChild(ResetPasswordScreen());
   else if (state.screen === 'complete-profile') app.appendChild(CompleteProfileScreen());
   else if (state.screen === 'feed') app.appendChild(FeedScreen());
   else if (state.screen === 'detail') app.appendChild(DetailScreen());
   else if (state.screen === 'create') app.appendChild(CreateScreen());
   else if (state.screen === 'edit') app.appendChild(EditScreen());
+  else if (state.screen === 'duplicate') app.appendChild(DuplicateScreen());
   else if (state.screen === 'profile') app.appendChild(ProfileScreen());
   else if (state.screen === 'legal') app.appendChild(LegalScreen());
+  else if (state.screen === 'my-events') app.appendChild(MyEventsScreen());
+  else if (state.screen === 'history') app.appendChild(HistoryScreen());
+  else if (state.screen === 'other-profile') app.appendChild(OtherProfileScreen());
 }
 
 function el(tag, attrs = {}, children = []) {
@@ -280,6 +376,8 @@ function flashSaved() {
   clearTimeout(flashTimeout);
   flashTimeout = setTimeout(() => ind.classList.remove('show'), 900);
 }
+
+// ---------- AUTH SCREENS ----------
 
 function WelcomeScreen() {
   const screen = el('div', {class: 'screen'});
@@ -309,10 +407,42 @@ function LoginScreen() {
       try {
         await signInWithEmailAndPassword(auth, emailInput.value.trim(), passInput.value);
       } catch (e) {
-        state.authError = 'Email ou mot de passe incorrect.';
+        state.authError = friendlyAuthError(e);
         btn.disabled = false; btn.textContent = 'Se connecter';
         render();
       }
+    }
+  });
+  screen.appendChild(btn);
+  screen.appendChild(el('button', {class: 'link-btn', text: 'Mot de passe oublié ?', style: 'margin-top:16px;', onclick: () => { state.screen = 'reset-password'; state.authError=''; render(); }}));
+  return screen;
+}
+
+function ResetPasswordScreen() {
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'login'; render(); }}));
+  screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
+  screen.appendChild(el('h1', {text: 'Mot de passe oublié'}));
+  screen.appendChild(el('p', {class: 'sub', text: 'On t\'envoie un lien par email pour le réinitialiser.'}));
+  if (state.authError) screen.appendChild(el('div', {class: 'error-msg', text: state.authError}));
+  if (state.infoMsg) screen.appendChild(el('div', {class: 'info-msg', text: state.infoMsg}));
+  const emailInput = el('input', {placeholder: 'Email', type: 'email'});
+  screen.appendChild(el('div', {class: 'field'}, [emailInput]));
+  const btn = el('button', {
+    class: 'primary', text: 'Envoyer le lien',
+    onclick: async () => {
+      state.authError = ''; state.infoMsg = '';
+      if (!emailInput.value.trim()) { state.authError = 'Renseigne ton email.'; render(); return; }
+      btn.disabled = true; btn.textContent = 'Envoi…';
+      try {
+        await sendPasswordResetEmail(auth, emailInput.value.trim());
+        state.infoMsg = 'Email envoyé — vérifie ta boîte de réception.';
+        btn.textContent = 'Envoyé ✓';
+      } catch (e) {
+        state.authError = friendlyAuthError(e);
+        btn.disabled = false; btn.textContent = 'Envoyer le lien';
+      }
+      render();
     }
   });
   screen.appendChild(btn);
@@ -326,7 +456,7 @@ function SignupScreen() {
   screen.appendChild(el('h1', {text: 'Créer un compte'}));
   if (state.authError) screen.appendChild(el('div', {class: 'error-msg', text: state.authError}));
 
-  const nameInput = el('input', {placeholder: 'Ton prénom'});
+  const nameInput = el('input', {placeholder: 'Ton prénom', maxlength: '30'});
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Prénom'}), nameInput]));
 
   const emailInput = el('input', {placeholder: 'Email', type: 'email'});
@@ -336,16 +466,11 @@ function SignupScreen() {
 
   screen.appendChild(el('label', {text: 'Tu es'}));
   const roleGrid = el('div', {class: 'role-grid', style: 'margin-bottom:20px'});
-  const dancerCard = el('div', { class: 'role-card', onclick: () => { state.pendingRole = 'dancer'; render(); } }, [
-    el('h3', {text: 'Danseur·se'})
-  ]);
-  const orgCard = el('div', { class: 'role-card', onclick: () => { state.pendingRole = 'organizer'; render(); } }, [
-    el('h3', {text: 'Organisateur·rice'})
-  ]);
+  const dancerCard = el('div', { class: 'role-card', onclick: () => { state.pendingRole = 'dancer'; render(); } }, [el('h3', {text: 'Danseur·se'})]);
+  const orgCard = el('div', { class: 'role-card', onclick: () => { state.pendingRole = 'organizer'; render(); } }, [el('h3', {text: 'Organisateur·rice'})]);
   if (state.pendingRole === 'dancer') dancerCard.style.borderColor = 'var(--blue)';
   if (state.pendingRole === 'organizer') orgCard.style.borderColor = 'var(--blue)';
-  roleGrid.appendChild(dancerCard);
-  roleGrid.appendChild(orgCard);
+  roleGrid.appendChild(dancerCard); roleGrid.appendChild(orgCard);
   screen.appendChild(roleGrid);
 
   screen.appendChild(el('label', {text: 'Danses pratiquées'}));
@@ -364,14 +489,13 @@ function SignupScreen() {
   });
   screen.appendChild(styleWrap);
 
-  const legalCheckbox = el('input', {type: 'checkbox', id: 'legal-accept', style: 'width:auto; margin-right:8px;'});
-  const legalRow = el('div', {style: 'display:flex; align-items:flex-start; gap:0; margin-bottom:20px; font-size:14px; color:var(--muted);'});
+  const legalCheckbox = el('input', {type: 'checkbox', id: 'legal-accept'});
+  const legalRow = el('div', {class: 'checkbox-row'});
   legalRow.appendChild(legalCheckbox);
-  const legalLabel = el('label', {style: 'text-transform:none; font-weight:500; letter-spacing:normal; margin:0; cursor:pointer;'});
+  const legalLabel = el('label', {});
   legalLabel.setAttribute('for', 'legal-accept');
   legalLabel.appendChild(document.createTextNode("J'ai lu et j'accepte les "));
-  const legalLink = el('span', {text: 'mentions légales et la politique de confidentialité', style: 'color:var(--blue); text-decoration:underline; cursor:pointer;', onclick: (e) => { e.preventDefault(); state.screen = 'legal'; render(); }});
-  legalLabel.appendChild(legalLink);
+  legalLabel.appendChild(el('span', {text: 'mentions légales et la politique de confidentialité', style: 'color:var(--blue); text-decoration:underline; cursor:pointer;', onclick: (e) => { e.preventDefault(); state.screen = 'legal'; render(); }}));
   legalRow.appendChild(legalLabel);
   screen.appendChild(legalRow);
 
@@ -383,16 +507,18 @@ function SignupScreen() {
       if (!name) { state.authError = 'Renseigne ton prénom.'; render(); return; }
       if (!emailInput.value.trim() || passInput.value.length < 6) { state.authError = 'Email valide et mot de passe de 6 caractères minimum.'; render(); return; }
       if (!state.pendingRole) { state.authError = 'Choisis si tu es danseur·se ou organisateur·rice.'; render(); return; }
-      if (!legalCheckbox.checked) { state.authError = 'Merci d\'accepter les mentions légales pour continuer.'; render(); return; }
+      if (!legalCheckbox.checked) { state.authError = "Merci d'accepter les mentions légales pour continuer."; render(); return; }
       btn.disabled = true; btn.textContent = 'Création…';
       try {
         const cred = await createUserWithEmailAndPassword(auth, emailInput.value.trim(), passInput.value);
-        const profile = { name, role: state.pendingRole, danceStyles: state.pendingStyles, acceptedLegalAt: Date.now() };
+        try { await sendEmailVerification(cred.user); } catch(e) {}
+        const profile = { name, role: state.pendingRole, danceStyles: state.pendingStyles, acceptedLegalAt: Date.now(), favorites: [], theme: 'dark' };
         await setDoc(doc(db, 'users', cred.user.uid), profile);
         state.profile = profile;
-        // onAuthStateChanged va aussi se déclencher et charger le profil, mais on l'a déjà en state
+        state.showOnboarding = true;
+        state.onboardingStep = 0;
       } catch (e) {
-        state.authError = e.code === 'auth/email-already-in-use' ? 'Cet email est déjà utilisé.' : 'Erreur : ' + e.message;
+        state.authError = friendlyAuthError(e);
         btn.disabled = false; btn.textContent = 'Créer mon compte';
         render();
       }
@@ -403,30 +529,20 @@ function SignupScreen() {
 }
 
 function CompleteProfileScreen() {
-  // Filet de sécurité : ne devrait plus arriver puisque le profil est créé en même temps que le compte,
-  // mais reste utile si un compte existe côté Auth sans document 'users' correspondant.
   const screen = el('div', {class: 'screen'});
   screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
   screen.appendChild(el('h1', {text: 'Ton profil'}));
-  screen.appendChild(el('p', {class: 'sub', text: 'Dernière étape avant d\'entrer.'}));
-
-  const nameInput = el('input', {placeholder: 'Ton prénom'});
+  screen.appendChild(el('p', {class: 'sub', text: "Dernière étape avant d'entrer."}));
+  const nameInput = el('input', {placeholder: 'Ton prénom', maxlength: '30'});
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Prénom'}), nameInput]));
-
   screen.appendChild(el('label', {text: 'Tu es'}));
   const roleGrid = el('div', {class: 'role-grid', style: 'margin-bottom:20px'});
-  const dancerCard = el('div', { class: 'role-card', onclick: () => { state.pendingRole = 'dancer'; render(); } }, [
-    el('h3', {text: 'Danseur·se'})
-  ]);
-  const orgCard = el('div', { class: 'role-card', onclick: () => { state.pendingRole = 'organizer'; render(); } }, [
-    el('h3', {text: 'Organisateur·rice'})
-  ]);
+  const dancerCard = el('div', { class: 'role-card', onclick: () => { state.pendingRole = 'dancer'; render(); } }, [el('h3', {text: 'Danseur·se'})]);
+  const orgCard = el('div', { class: 'role-card', onclick: () => { state.pendingRole = 'organizer'; render(); } }, [el('h3', {text: 'Organisateur·rice'})]);
   if (state.pendingRole === 'dancer') dancerCard.style.borderColor = 'var(--blue)';
   if (state.pendingRole === 'organizer') orgCard.style.borderColor = 'var(--blue)';
-  roleGrid.appendChild(dancerCard);
-  roleGrid.appendChild(orgCard);
+  roleGrid.appendChild(dancerCard); roleGrid.appendChild(orgCard);
   screen.appendChild(roleGrid);
-
   screen.appendChild(el('label', {text: 'Danses pratiquées'}));
   const styleWrap = el('div', {class: 'style-wrap'});
   DANCE_STYLES.forEach(style => {
@@ -442,14 +558,13 @@ function CompleteProfileScreen() {
     styleWrap.appendChild(chip);
   });
   screen.appendChild(styleWrap);
-
   const btn = el('button', {
     class: 'primary', text: 'Entrer dans Pulse',
     onclick: async () => {
       const name = nameInput.value.trim();
       if (!name || !state.pendingRole) return;
       btn.disabled = true; btn.textContent = 'Création…';
-      const profile = { name, role: state.pendingRole, danceStyles: state.pendingStyles };
+      const profile = { name, role: state.pendingRole, danceStyles: state.pendingStyles, favorites: [], theme: 'dark' };
       await setDoc(doc(db, 'users', state.user.uid), profile);
       state.profile = profile;
       state.screen = 'feed';
@@ -460,87 +575,37 @@ function CompleteProfileScreen() {
   return screen;
 }
 
-function FeedScreen() {
+function OnboardingScreen() {
+  const slides = state.pendingRole === 'organizer' ? [
+    { title: 'Bienvenue sur Pulse', text: 'Publie tes soirées et fais-les découvrir aux danseurs de ton département.' },
+    { title: 'Suis qui vient', text: "Chaque soirée affiche la liste des danseurs inscrits, en temps réel." },
+    { title: "C'est parti", text: "Crée ta première soirée dès maintenant depuis le bouton +." }
+  ] : [
+    { title: 'Bienvenue sur Pulse', text: 'Découvre les soirées de danse près de chez toi, filtrées par département.' },
+    { title: 'RSVP en un clic', text: 'Dis "j\'y vais" et vois qui d\'autre sera présent.' },
+    { title: 'Filtre à ta façon', text: 'Trie par date, popularité, prix, ou ne garde que tes styles favoris.' }
+  ];
   const screen = el('div', {class: 'screen'});
-  screen.appendChild(el('div', {class: 'topbar'}, [
-    el('div', {class: 'brand', text: 'PULSE'}),
-    el('div', {class: 'topbar-actions'}, [
-      el('button', {class: 'icon-btn', text: 'Profil', onclick: () => { state.screen = 'profile'; render(); }}),
-      state.profile.isCreator ? el('span', {class: 'dept-badge', text: '★ Créateur·rice', style: 'margin-bottom:0'}) : null,
-      el('div', {
-        class: 'role-pill', text: (state.profile.role === 'dancer' ? 'Danseur·se' : 'Organisateur·rice') + '  ⇄',
-        style: 'cursor:pointer',
-        onclick: async () => { await signOut(auth); }
-      })
-    ])
-  ]));
-  screen.appendChild(el('h1', {text: 'Soirées à venir'}));
-
-  const allDepts = [...new Set(state.events.map(ev => ev.dept).filter(Boolean))].sort();
-  if (allDepts.length > 0) {
-    const deptSelect = el('select', {
-      onchange: (e) => { state.deptFilter = e.target.value; render(); }
-    });
-    deptSelect.appendChild(el('option', {text: 'Tous les départements', value: ''}));
-    allDepts.forEach(d => {
-      const opt = el('option', {text: d, value: d});
-      if (state.deptFilter === d) opt.setAttribute('selected', 'selected');
-      deptSelect.appendChild(opt);
-    });
-    screen.appendChild(deptSelect);
-  }
-
-  const sortRow = el('div', {class: 'sort-row'});
-  sortRow.appendChild(el('span', {
-    class: 'sort-chip' + (state.sortBy === 'date' ? ' active' : ''), text: 'Date',
-    onclick: () => { state.sortBy = 'date'; render(); }
+  screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
+  const s = slides[state.onboardingStep];
+  screen.appendChild(el('h1', {text: s.title}));
+  screen.appendChild(el('p', {class: 'sub', text: s.text}));
+  const dots = el('div', {class: 'onboard-dots'});
+  slides.forEach((_, i) => dots.appendChild(el('span', {class: 'onboard-dot' + (i === state.onboardingStep ? ' active' : '')})));
+  screen.appendChild(dots);
+  const isLast = state.onboardingStep === slides.length - 1;
+  screen.appendChild(el('button', {
+    class: 'primary', text: isLast ? 'Découvrir Pulse' : 'Suivant',
+    onclick: () => {
+      if (isLast) { state.showOnboarding = false; state.screen = 'feed'; }
+      else state.onboardingStep++;
+      render();
+    }
   }));
-  sortRow.appendChild(el('span', {
-    class: 'sort-chip' + (state.sortBy === 'popular' ? ' active' : ''), text: 'Popularité',
-    onclick: () => { state.sortBy = 'popular'; render(); }
-  }));
-  sortRow.appendChild(el('span', {
-    class: 'sort-chip' + (state.sortBy === 'price' ? ' active' : ''), text: 'Prix',
-    onclick: () => { state.sortBy = 'price'; render(); }
-  }));
-  screen.appendChild(sortRow);
-
-  let events = [...state.events];
-  const now = new Date();
-  events = events.filter(ev => {
-    if (!ev.dateISO) return true;
-    const hideAt = new Date(ev.dateISO + 'T00:00:00');
-    hideAt.setDate(hideAt.getDate() + 1);
-    hideAt.setHours(5, 0, 0, 0);
-    return now < hideAt;
-  });
-  if (state.deptFilter) events = events.filter(ev => ev.dept === state.deptFilter);
-  if (state.sortBy === 'popular') events.sort((a, b) => (b.attendees||[]).length - (a.attendees||[]).length);
-  else if (state.sortBy === 'price') events.sort((a, b) => (a.price||0) - (b.price||0));
-  else events.sort((a, b) => ((a.dateISO||'') + (a.time||'')).localeCompare((b.dateISO||'') + (b.time||'')));
-
-  if (events.length === 0) {
-    screen.appendChild(el('div', {class: 'empty', text: 'Aucune soirée pour le moment.'}));
-  } else {
-    events.forEach(ev => {
-      const attendees = ev.attendees || [];
-      const going = attendees.some(a => a.uid === state.user.uid);
-      const card = el('div', { class: 'event-card', onclick: () => { state.currentEventId = ev.id; state.screen = 'detail'; render(); } }, [
-        el('div', {class: 'event-date', text: formatEventDate(ev.dateISO) + ' · ' + ev.time}),
-        el('div', {class: 'event-title', text: ev.title}),
-        el('div', {class: 'event-meta', text: ev.place}),
-        el('div', {class: 'event-price', text: (ev.price ? ev.price + ' €' : 'Gratuit') + ' · ' + attendees.length + ' inscrit·e·s'})
-      ]);
-      if (ev.dept) card.insertBefore(el('div', {class: 'dept-badge', text: ev.dept}), card.firstChild);
-      if (going) card.appendChild(el('div', {class: 'event-going', text: '✓ Tu y vas'}));
-      screen.appendChild(card);
-    });
-  }
-  if (state.profile.role === 'organizer') {
-    screen.appendChild(el('button', {class: 'fab', text: '+', onclick: () => { state.screen = 'create'; render(); }}));
-  }
   return screen;
 }
+
+// ---------- LEGAL ----------
 
 function LegalScreen() {
   const screen = el('div', {class: 'screen'});
@@ -554,13 +619,25 @@ function LegalScreen() {
   return screen;
 }
 
+// ---------- PROFILE ----------
+
 function ProfileScreen() {
   const screen = el('div', {class: 'screen'});
   screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'feed'; render(); }}));
   screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
   screen.appendChild(el('h1', {text: 'Ton profil'}));
 
-  const nameInput = el('input', {placeholder: 'Ton prénom'});
+  if (state.user && !state.user.emailVerified) {
+    const vb = el('div', {class: 'verify-banner'}, [
+      el('div', {text: '✉️ Email non vérifié.'}),
+      el('span', {class: 'link-btn', text: "Renvoyer l'email de vérification", style: 'display:inline-block; margin-top:6px;', onclick: async () => {
+        try { await sendEmailVerification(state.user); flashSaved(); } catch(e) {}
+      }})
+    ]);
+    screen.appendChild(vb);
+  }
+
+  const nameInput = el('input', {placeholder: 'Ton prénom', maxlength: '30'});
   nameInput.value = state.profile.name;
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Prénom'}), nameInput]));
 
@@ -568,16 +645,6 @@ function ProfileScreen() {
     el('label', {text: 'Rôle'}),
     el('div', {text: state.profile.role === 'dancer' ? 'Danseur·se' : 'Organisateur·rice', style: 'padding:6px 0; color:var(--muted); font-weight:600;'})
   ]));
-
-  let localIsCreator = !!state.profile.isCreator;
-  const creatorChip = el('span', {
-    class: 'style-chip' + (localIsCreator ? ' active' : ''), text: '★ Créateur·rice de Pulse',
-    onclick: () => {
-      localIsCreator = !localIsCreator;
-      creatorChip.className = 'style-chip' + (localIsCreator ? ' active' : '');
-    }
-  });
-  screen.appendChild(el('div', {class: 'style-wrap'}, [creatorChip]));
 
   let localStyles = [...(state.profile.danceStyles || [])];
   screen.appendChild(el('label', {text: 'Danses pratiquées'}));
@@ -596,34 +663,228 @@ function ProfileScreen() {
   });
   screen.appendChild(styleWrap);
 
+  let localIsCreator = !!state.profile.isCreator;
+  const creatorChip = el('span', {
+    class: 'style-chip' + (localIsCreator ? ' active' : ''), text: '★ Créateur·rice de Pulse',
+    onclick: () => { localIsCreator = !localIsCreator; creatorChip.className = 'style-chip' + (localIsCreator ? ' active' : ''); }
+  });
+  screen.appendChild(el('div', {class: 'style-wrap'}, [creatorChip]));
+
+  let localTheme = state.profile.theme || 'dark';
+  screen.appendChild(el('label', {text: 'Thème'}));
+  const themeWrap = el('div', {class: 'style-wrap'});
+  const darkChip = el('span', {class: 'style-chip' + (localTheme === 'dark' ? ' active' : ''), text: '🌙 Sombre'});
+  const lightChip = el('span', {class: 'style-chip' + (localTheme === 'light' ? ' active' : ''), text: '☀️ Clair'});
+  darkChip.onclick = () => { localTheme = 'dark'; darkChip.className = 'style-chip active'; lightChip.className = 'style-chip'; };
+  lightChip.onclick = () => { localTheme = 'light'; lightChip.className = 'style-chip active'; darkChip.className = 'style-chip'; };
+  themeWrap.appendChild(darkChip); themeWrap.appendChild(lightChip);
+  screen.appendChild(themeWrap);
+
   const btn = el('button', {
     class: 'primary', text: 'Enregistrer',
     onclick: async () => {
       const name = nameInput.value.trim();
       if (!name) return;
       btn.disabled = true; btn.textContent = 'Enregistrement…';
-      const updated = { ...state.profile, name, danceStyles: localStyles, isCreator: localIsCreator };
-      await updateDoc(doc(db, 'users', state.user.uid), { name, danceStyles: localStyles, isCreator: localIsCreator });
+      const updated = { ...state.profile, name, danceStyles: localStyles, isCreator: localIsCreator, theme: localTheme };
+      await updateDoc(doc(db, 'users', state.user.uid), { name, danceStyles: localStyles, isCreator: localIsCreator, theme: localTheme });
       state.profile = updated;
       state.screen = 'feed';
       render();
     }
   });
   screen.appendChild(btn);
-  screen.appendChild(el('button', {
-    class: 'secondary', text: 'Mentions légales & confidentialité',
-    onclick: () => { state.screen = 'legal'; render(); }
-  }));
+
+  if (state.profile.role === 'dancer') {
+    screen.appendChild(el('button', {class: 'secondary', text: 'Historique de mes soirées', onclick: () => { state.screen = 'history'; render(); }}));
+  }
+  if (state.profile.role === 'organizer') {
+    screen.appendChild(el('button', {class: 'secondary', text: 'Mes soirées', onclick: () => { state.screen = 'my-events'; render(); }}));
+  }
+  screen.appendChild(el('button', {class: 'secondary', text: 'Mentions légales & confidentialité', onclick: () => { state.screen = 'legal'; render(); }}));
   return screen;
 }
 
+function OtherProfileScreen() {
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'detail'; render(); }}));
+  screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
+  if (!state.viewedProfile) {
+    screen.appendChild(el('div', {class: 'empty', text: 'Profil introuvable.'}));
+    return screen;
+  }
+  const p = state.viewedProfile;
+  screen.appendChild(el('h1', {text: p.name}));
+  screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Rôle'}), el('div', {text: p.role === 'dancer' ? 'Danseur·se' : 'Organisateur·rice'})]));
+  if (p.danceStyles && p.danceStyles.length) {
+    screen.appendChild(el('label', {text: 'Danses pratiquées', style: 'margin-top:16px;'}));
+    const wrap = el('div', {class: 'style-wrap'});
+    p.danceStyles.forEach(s => wrap.appendChild(el('span', {class: 'style-chip active', text: s})));
+    screen.appendChild(wrap);
+  }
+  return screen;
+}
+
+// ---------- FEED ----------
+
+function FeedScreen() {
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('div', {class: 'topbar'}, [
+    el('div', {class: 'brand', text: 'PULSE'}),
+    el('div', {class: 'topbar-actions'}, [
+      el('button', {class: 'icon-btn', text: 'Profil', onclick: () => { state.screen = 'profile'; render(); }}),
+      state.profile.isCreator ? el('span', {class: 'dept-badge', text: '★ Créateur·rice', style: 'margin-bottom:0'}) : null,
+      el('div', {
+        class: 'role-pill', text: (state.profile.role === 'dancer' ? 'Danseur·se' : 'Organisateur·rice') + '  ⇄',
+        style: 'cursor:pointer', onclick: async () => { await signOut(auth); }
+      })
+    ])
+  ]));
+
+  // Notifications d'annulation pour les soirées auxquelles le danseur était inscrit
+  const cancelledForMe = state.events.filter(ev => ev.status === 'cancelled' && (ev.attendees||[]).some(a => a.uid === state.user.uid) && !state.dismissedNotices.includes(ev.id));
+  cancelledForMe.forEach(ev => {
+    const banner = el('div', {class: 'notice-banner'}, [
+      el('div', {class: 'title', text: 'Soirée annulée : ' + ev.title}),
+      el('div', {text: ev.cancelReason || "L'organisateur a annulé cette soirée."}),
+      el('span', {class: 'link-btn', text: 'OK, compris', style: 'display:inline-block; margin-top:8px;', onclick: async () => {
+        state.dismissedNotices.push(ev.id);
+        localStorage.setItem('pulse-dismissed-notices', JSON.stringify(state.dismissedNotices));
+        const newAttendees = (ev.attendees||[]).filter(a => a.uid !== state.user.uid);
+        ev.attendees = newAttendees;
+        render();
+        try { await updateDoc(doc(db, 'events', ev.id), { attendees: newAttendees }); } catch(e) {}
+      }})
+    ]);
+    screen.appendChild(banner);
+  });
+
+  screen.appendChild(el('h1', {text: 'Soirées à venir'}));
+
+  const searchInput = el('input', {class: 'search-input', placeholder: 'Rechercher un titre, un lieu…', value: state.searchQuery});
+  searchInput.oninput = (e) => { state.searchQuery = e.target.value; renderFeedListOnly(); };
+  screen.appendChild(searchInput);
+
+  const filterRow = el('div', {class: 'filter-row'});
+  filterRow.appendChild(el('span', {
+    class: 'sort-chip' + (state.showFavoritesOnly ? ' active' : ''), text: '❤ Favoris',
+    onclick: () => { state.showFavoritesOnly = !state.showFavoritesOnly; render(); }
+  }));
+  DANCE_STYLES.forEach(style => {
+    filterRow.appendChild(el('span', {
+      class: 'sort-chip' + (state.danceFilter === style ? ' active' : ''), text: style,
+      onclick: () => { state.danceFilter = state.danceFilter === style ? '' : style; render(); }
+    }));
+  });
+  screen.appendChild(filterRow);
+
+  const allDepts = [...new Set(state.events.map(ev => ev.dept).filter(Boolean))].sort();
+  if (allDepts.length > 0) {
+    const deptSelect = el('select', { onchange: (e) => { state.deptFilter = e.target.value; render(); } });
+    deptSelect.appendChild(el('option', {text: 'Tous les départements', value: ''}));
+    allDepts.forEach(d => {
+      const opt = el('option', {text: d, value: d});
+      if (state.deptFilter === d) opt.setAttribute('selected', 'selected');
+      deptSelect.appendChild(opt);
+    });
+    screen.appendChild(deptSelect);
+  }
+
+  const sortRow = el('div', {class: 'sort-row'});
+  [['date','Date'],['popular','Popularité'],['price','Prix']].forEach(([key,label]) => {
+    sortRow.appendChild(el('span', {
+      class: 'sort-chip' + (state.sortBy === key ? ' active' : ''), text: label,
+      onclick: () => { state.sortBy = key; render(); }
+    }));
+  });
+  screen.appendChild(sortRow);
+
+  const list = el('div', {id: 'feed-list'});
+  list.appendChild(buildFeedList());
+  screen.appendChild(list);
+
+  if (state.profile.role === 'organizer') {
+    screen.appendChild(el('button', {class: 'fab', text: '+', onclick: () => { state.screen = 'create'; render(); }}));
+  }
+  return screen;
+}
+
+function renderFeedListOnly() {
+  const list = document.getElementById('feed-list');
+  if (!list) return;
+  list.innerHTML = '';
+  list.appendChild(buildFeedList());
+}
+
+function buildFeedList() {
+  const frag = document.createDocumentFragment();
+  let events = state.events.filter(ev => !isEventHidden(ev) && ev.status !== 'cancelled');
+  if (state.deptFilter) events = events.filter(ev => ev.dept === state.deptFilter);
+  if (state.danceFilter) events = events.filter(ev => (ev.title + ' ' + (ev.desc||'')).toLowerCase().includes(state.danceFilter.toLowerCase()));
+  if (state.searchQuery.trim()) {
+    const q = state.searchQuery.trim().toLowerCase();
+    events = events.filter(ev => (ev.title||'').toLowerCase().includes(q) || (ev.place||'').toLowerCase().includes(q));
+  }
+  if (state.showFavoritesOnly) {
+    const favs = state.profile.favorites || [];
+    events = events.filter(ev => favs.includes(ev.id));
+  }
+  if (state.sortBy === 'popular') events.sort((a, b) => (b.attendees||[]).length - (a.attendees||[]).length);
+  else if (state.sortBy === 'price') events.sort((a, b) => (a.price||0) - (b.price||0));
+  else events.sort((a, b) => ((a.dateISO||'') + (a.time||'')).localeCompare((b.dateISO||'') + (b.time||'')));
+
+  if (events.length === 0) {
+    frag.appendChild(el('div', {class: 'empty', text: 'Aucune soirée pour le moment.'}));
+    return frag;
+  }
+  events.forEach(ev => {
+    const attendees = ev.attendees || [];
+    const going = attendees.some(a => a.uid === state.user.uid);
+    const isFav = (state.profile.favorites || []).includes(ev.id);
+    const card = el('div', { class: 'event-card', onclick: () => { state.currentEventId = ev.id; state.screen = 'detail'; render(); } }, [
+      el('button', {
+        class: 'fav-btn' + (isFav ? ' active' : ''), text: isFav ? '♥' : '♡',
+        onclick: async (e) => {
+          e.stopPropagation();
+          const favs = state.profile.favorites || [];
+          const newFavs = isFav ? favs.filter(id => id !== ev.id) : [...favs, ev.id];
+          state.profile.favorites = newFavs;
+          render();
+          try { await updateDoc(doc(db, 'users', state.user.uid), { favorites: newFavs }); } catch(err) {}
+        }
+      }),
+      el('div', {class: 'event-date', text: formatEventDate(ev.dateISO) + ' · ' + ev.time}),
+      el('div', {class: 'event-title', text: ev.title}),
+      el('div', {class: 'event-meta', text: ev.place}),
+      el('div', {class: 'event-price', text: (ev.price ? ev.price + ' €' : 'Gratuit') + ' · ' + attendees.length + ' inscrit·e·s'})
+    ]);
+    if (ev.dept) card.insertBefore(el('div', {class: 'dept-badge', text: ev.dept}), card.firstChild);
+    if (going) card.appendChild(el('div', {class: 'event-going', text: '✓ Tu y vas'}));
+    frag.appendChild(card);
+  });
+  return frag;
+}
+
+// ---------- DETAIL ----------
+
 function DetailScreen() {
   const ev = state.events.find(e => e.id === state.currentEventId);
-  if (!ev) { state.screen = 'feed'; render(); return el('div'); }
+  if (!ev) {
+    const screen = el('div', {class: 'screen'});
+    screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'feed'; render(); }}));
+    screen.appendChild(el('div', {class: 'empty', text: 'Cette soirée n\'existe plus.'}));
+    return screen;
+  }
+  if (!state.countedViews.has(ev.id)) {
+    state.countedViews.add(ev.id);
+    updateDoc(doc(db, 'events', ev.id), { views: (ev.views||0) + 1 }).catch(() => {});
+  }
   const attendees = ev.attendees || [];
   const going = attendees.some(a => a.uid === state.user.uid);
+  const isFav = (state.profile.favorites || []).includes(ev.id);
   const screen = el('div', {class: 'screen'});
   screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'feed'; render(); }}));
+  if (ev.status === 'cancelled') screen.appendChild(el('div', {class: 'cancelled-badge', text: 'Annulée'}));
   screen.appendChild(el('div', {class: 'event-date', text: formatEventDate(ev.dateISO) + ' · ' + ev.time}));
   screen.appendChild(el('div', {class: 'detail-title', text: ev.title}));
   screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Lieu'}), el('div', {text: ev.place})]));
@@ -632,38 +893,86 @@ function DetailScreen() {
   screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Participants'}), el('div', {text: attendees.length + ' inscrit·e·s'})]));
   screen.appendChild(el('div', {class: 'detail-desc', text: ev.desc}));
 
+  const actionRow = el('div', {style: 'display:flex; gap:10px; margin-bottom:16px;'});
+  actionRow.appendChild(el('button', {
+    class: 'secondary', text: isFav ? '♥ Favori' : '♡ Ajouter aux favoris', style: 'margin-top:0;',
+    onclick: async () => {
+      const favs = state.profile.favorites || [];
+      const newFavs = isFav ? favs.filter(id => id !== ev.id) : [...favs, ev.id];
+      state.profile.favorites = newFavs;
+      render();
+      try { await updateDoc(doc(db, 'users', state.user.uid), { favorites: newFavs }); } catch(err) {}
+    }
+  }));
+  actionRow.appendChild(el('button', {
+    class: 'secondary', text: '↗ Partager', style: 'margin-top:0;',
+    onclick: async () => {
+      const url = window.location.origin + window.location.pathname + '?event=' + ev.id;
+      if (navigator.share) {
+        try { await navigator.share({ title: ev.title, text: 'Découvre cette soirée sur Pulse', url }); } catch(e) {}
+      } else {
+        try { await navigator.clipboard.writeText(url); flashSaved(); } catch(e) {}
+      }
+    }
+  }));
+  screen.appendChild(actionRow);
+
+  screen.appendChild(el('button', {
+    class: 'secondary', text: '📅 Ajouter à mon calendrier', style: 'margin-top:0; margin-bottom:16px;',
+    onclick: () => downloadICS(ev)
+  }));
+
   const attList = el('div', {class: 'attendee-list'});
   attList.appendChild(el('h4', {text: 'Qui vient'}));
   if (attendees.length === 0) {
-    attList.appendChild(el('div', {class: 'empty', text: 'Personne pour l\'instant.'}));
+    attList.appendChild(el('div', {class: 'empty', text: "Personne pour l'instant."}));
   } else {
-    attendees.forEach(a => attList.appendChild(el('span', {class: 'attendee-chip', text: a.name})));
+    attendees.forEach(a => attList.appendChild(el('span', {
+      class: 'attendee-chip', text: a.name,
+      onclick: async () => {
+        try {
+          const snap = await getDoc(doc(db, 'users', a.uid));
+          state.viewedProfile = snap.exists() ? snap.data() : null;
+        } catch(e) { state.viewedProfile = null; }
+        state.screen = 'other-profile';
+        render();
+      }
+    })));
   }
   screen.appendChild(attList);
 
   if (state.user.uid === ev.organizerUid) {
-    const manageRow = el('div', {style: 'display:flex; gap:10px; margin-bottom:20px;'});
-    manageRow.appendChild(el('button', {
-      class: 'secondary', text: 'Modifier', style: 'margin-top:0;',
-      onclick: () => { state.screen = 'edit'; render(); }
+    const manageRow = el('div', {style: 'display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap;'});
+    manageRow.appendChild(el('button', {class: 'secondary', text: 'Modifier', style: 'margin-top:0; flex:1;', onclick: () => { state.screen = 'edit'; render(); }}));
+    manageRow.appendChild(el('button', {class: 'secondary', text: 'Dupliquer', style: 'margin-top:0; flex:1;', onclick: () => { state.screen = 'duplicate'; render(); }}));
+    screen.appendChild(manageRow);
+    screen.appendChild(el('button', {
+      class: 'secondary', text: 'Exporter les participants (CSV)', style: 'margin-top:0; margin-bottom:10px;',
+      onclick: () => downloadCSV(ev)
     }));
-    manageRow.appendChild(el('button', {
-      class: 'secondary', text: 'Supprimer', style: 'margin-top:0; color:var(--pink); border-color:var(--pink-dim);',
+    if (ev.status !== 'cancelled') {
+      screen.appendChild(el('button', {
+        class: 'secondary danger-outline', text: 'Annuler la soirée', style: 'margin-top:0; margin-bottom:10px;',
+        onclick: async () => {
+          const reason = prompt("Message pour les inscrits (raison de l'annulation) :", '');
+          if (reason === null) return;
+          try {
+            await updateDoc(doc(db, 'events', ev.id), { status: 'cancelled', cancelReason: reason || "L'organisateur a annulé cette soirée." });
+            state.screen = 'feed'; render();
+          } catch(e) { console.error(e); }
+        }
+      }));
+    }
+    screen.appendChild(el('button', {
+      class: 'secondary danger-outline', text: 'Supprimer définitivement', style: 'margin-top:0;',
       onclick: async () => {
         if (!confirm('Supprimer définitivement cette soirée ?')) return;
-        try {
-          await deleteDoc(doc(db, 'events', ev.id));
-          state.screen = 'feed';
-          render();
-        } catch (err) {
-          console.error('Échec suppression', err);
-        }
+        try { await deleteDoc(doc(db, 'events', ev.id)); state.screen = 'feed'; render(); } catch(e) { console.error(e); }
       }
     }));
-    screen.appendChild(manageRow);
   }
 
-  if (state.profile.role === 'dancer') {
+  if (state.profile.role === 'dancer' && ev.status !== 'cancelled') {
     screen.appendChild(el('button', {
       class: 'primary' + (going ? ' going' : ''),
       text: going ? '✓ Tu y vas — annuler' : "J'y vais",
@@ -671,40 +980,108 @@ function DetailScreen() {
         let newAttendees;
         if (going) newAttendees = attendees.filter(a => a.uid !== state.user.uid);
         else newAttendees = [...attendees, { uid: state.user.uid, name: state.profile.name }];
-        // Mise à jour optimiste : on met à jour l'affichage tout de suite, sans attendre la réponse serveur
         ev.attendees = newAttendees;
         render();
-        try {
-          await updateDoc(doc(db, 'events', ev.id), { attendees: newAttendees });
-          flashSaved();
-        } catch (err) {
-          console.error('Échec RSVP', err);
-        }
+        try { await updateDoc(doc(db, 'events', ev.id), { attendees: newAttendees }); flashSaved(); } catch (err) { console.error('Échec RSVP', err); }
       }
     }));
   }
   return screen;
 }
 
-function EventFormScreen(existingEvent) {
-  const isEdit = !!existingEvent;
+function downloadCSV(ev) {
+  const rows = [['Prénom'], ...(ev.attendees||[]).map(a => [a.name])];
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'participants-' + (ev.title||'soiree').replace(/[^a-z0-9]/gi,'-') + '.csv';
+  a.click();
+}
+
+function downloadICS(ev) {
+  const start = (ev.dateISO||'').replace(/-/g,'') + 'T' + (ev.time||'20:00').replace(':','') + '00';
+  const ics = ['BEGIN:VCALENDAR','VERSION:2.0','BEGIN:VEVENT',
+    'SUMMARY:' + (ev.title||'Soirée Pulse'),
+    'LOCATION:' + (ev.place||''),
+    'DESCRIPTION:' + (ev.desc||'').replace(/\n/g,' '),
+    'DTSTART:' + start,
+    'END:VEVENT','END:VCALENDAR'].join('\n');
+  const blob = new Blob([ics], {type: 'text/calendar;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (ev.title||'soiree').replace(/[^a-z0-9]/gi,'-') + '.ics';
+  a.click();
+}
+
+// ---------- MY EVENTS / HISTORY ----------
+
+function MyEventsScreen() {
   const screen = el('div', {class: 'screen'});
-  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = isEdit ? 'detail' : 'feed'; render(); }}));
+  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'profile'; render(); }}));
+  screen.appendChild(el('h1', {text: 'Mes soirées'}));
+  const mine = state.events.filter(ev => ev.organizerUid === state.user.uid).sort((a,b) => ((b.dateISO||'')+(b.time||'')).localeCompare((a.dateISO||'')+(a.time||'')));
+  if (mine.length === 0) {
+    screen.appendChild(el('div', {class: 'empty', text: "Tu n'as pas encore créé de soirée."}));
+  } else {
+    mine.forEach(ev => {
+      const hidden = isEventHidden(ev);
+      const card = el('div', { class: 'event-card', onclick: () => { state.currentEventId = ev.id; state.screen = 'detail'; render(); } }, [
+        el('div', {class: 'event-date', text: formatEventDate(ev.dateISO) + ' · ' + ev.time}),
+        el('div', {class: 'event-title', text: ev.title}),
+        el('div', {class: 'event-price', text: (ev.attendees||[]).length + ' inscrit·e·s · ' + (ev.views||0) + ' vues'})
+      ]);
+      if (ev.status === 'cancelled') card.insertBefore(el('div', {class: 'cancelled-badge', text: 'Annulée'}), card.firstChild);
+      else if (hidden) card.insertBefore(el('div', {class: 'dept-badge', text: 'Passée'}), card.firstChild);
+      screen.appendChild(card);
+    });
+  }
+  return screen;
+}
+
+function HistoryScreen() {
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'profile'; render(); }}));
+  screen.appendChild(el('h1', {text: 'Historique'}));
+  const past = state.events.filter(ev => isEventHidden(ev) && (ev.attendees||[]).some(a => a.uid === state.user.uid))
+    .sort((a,b) => ((b.dateISO||'')+(b.time||'')).localeCompare((a.dateISO||'')+(a.time||'')));
+  if (past.length === 0) {
+    screen.appendChild(el('div', {class: 'empty', text: "Aucune soirée passée pour l'instant."}));
+  } else {
+    past.forEach(ev => {
+      screen.appendChild(el('div', {class: 'event-card'}, [
+        el('div', {class: 'event-date', text: formatEventDate(ev.dateISO) + ' · ' + ev.time}),
+        el('div', {class: 'event-title', text: ev.title}),
+        el('div', {class: 'event-meta', text: ev.place})
+      ]));
+    });
+  }
+  return screen;
+}
+
+// ---------- CREATE / EDIT / DUPLICATE ----------
+
+function EventFormScreen(existingEvent, mode) {
+  const isEdit = mode === 'edit';
+  const isDuplicate = mode === 'duplicate';
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = existingEvent ? 'detail' : 'feed'; render(); }}));
   screen.appendChild(el('h1', {text: isEdit ? 'Modifier la soirée' : 'Nouvelle soirée'}));
   if (!isEdit) screen.appendChild(el('p', {class: 'sub', text: 'Renseigne les infos, les danseurs verront ta soirée dans le flux.'}));
-  const titleInput = el('input', {placeholder: 'Titre de la soirée'});
+
+  const titleInput = el('input', {placeholder: 'Titre de la soirée', maxlength: '60'});
   const dateInput = el('input', {type: 'date'});
   const timeInput = el('input', {type: 'time'});
-  const placeInput = el('input', {placeholder: 'Lieu (ex. La Salsatheque, Marseille)'});
+  const placeInput = el('input', {placeholder: 'Lieu (ex. La Salsatheque, Marseille)', maxlength: '80'});
   const deptSelect = el('select', {});
   deptSelect.appendChild(el('option', {text: 'Choisir un département', value: ''}));
   DEPARTMENTS.forEach(d => deptSelect.appendChild(el('option', {text: d, value: d})));
   const priceInput = el('input', {placeholder: 'Prix en € (laisser vide si gratuit)', type: 'number', min: '0'});
-  const descInput = el('textarea', {placeholder: 'Description'});
+  const descInput = el('textarea', {placeholder: 'Description', maxlength: '500'});
 
-  if (isEdit) {
+  if (existingEvent) {
     titleInput.value = existingEvent.title || '';
-    dateInput.value = existingEvent.dateISO || '';
+    dateInput.value = isDuplicate ? '' : (existingEvent.dateISO || '');
     timeInput.value = existingEvent.time || '';
     placeInput.value = existingEvent.place || '';
     deptSelect.value = existingEvent.dept || '';
@@ -719,6 +1096,7 @@ function EventFormScreen(existingEvent) {
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Département'}), deptSelect]));
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Prix'}), priceInput]));
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Description'}), descInput]));
+
   const submitBtn = el('button', {
     class: 'primary', text: isEdit ? 'Enregistrer les modifications' : 'Publier la soirée',
     onclick: async () => {
@@ -735,7 +1113,7 @@ function EventFormScreen(existingEvent) {
           await updateDoc(doc(db, 'events', existingEvent.id), payload);
           state.screen = 'detail';
         } else {
-          await addDoc(collection(db, 'events'), { ...payload, attendees: [], organizerUid: state.user.uid, createdAt: Date.now() });
+          await addDoc(collection(db, 'events'), { ...payload, attendees: [], views: 0, status: 'active', organizerUid: state.user.uid, createdAt: Date.now() });
           state.screen = 'feed';
         }
         render();
@@ -750,11 +1128,16 @@ function EventFormScreen(existingEvent) {
   return screen;
 }
 
-function CreateScreen() { return EventFormScreen(null); }
+function CreateScreen() { return EventFormScreen(null, 'create'); }
 function EditScreen() {
   const ev = state.events.find(e => e.id === state.currentEventId);
   if (!ev) { state.screen = 'feed'; render(); return el('div'); }
-  return EventFormScreen(ev);
+  return EventFormScreen(ev, 'edit');
+}
+function DuplicateScreen() {
+  const ev = state.events.find(e => e.id === state.currentEventId);
+  if (!ev) { state.screen = 'feed'; render(); return el('div'); }
+  return EventFormScreen(ev, 'duplicate');
 }
 
 render();
