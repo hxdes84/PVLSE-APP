@@ -143,6 +143,18 @@
     padding: 13px 14px; border-radius: 6px; font-size: 16px; margin-bottom: 14px; font-family: 'Rajdhani', sans-serif; font-weight: 500;
   }
   input:focus, textarea:focus, select:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 12px rgba(47,217,255,0.3); }
+  input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus, input:-webkit-autofill:active,
+  input:autofill {
+    -webkit-text-fill-color: var(--paper) !important;
+    -webkit-box-shadow: 0 0 0 1000px #17171f inset !important;
+    box-shadow: 0 0 0 1000px #17171f inset !important;
+    caret-color: var(--paper);
+    transition: background-color 9999s ease-in-out 0s;
+  }
+  @keyframes onAutoFillStart { from {} to {} }
+  @keyframes onAutoFillCancel { from {} to {} }
+  input:-webkit-autofill { animation-name: onAutoFillStart; }
+  input:not(:-webkit-autofill) { animation-name: onAutoFillCancel; }
   textarea { min-height: 90px; resize: vertical; }
   label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
   .field { margin-bottom: 16px; }
@@ -1664,6 +1676,23 @@ function DuplicateScreen() {
   if (!ev) { state.screen = 'feed'; render(); return el('div'); }
   return EventFormScreen(ev, 'duplicate');
 }
+
+// Filet de sécurité anti-autofill blanc : détecte le remplissage auto via l'astuce d'animation CSS,
+// et force la couleur sombre en JS (contourne les cas où le CSS seul ne suffit pas selon le navigateur/OS).
+function forceDarkField(input) {
+  input.style.setProperty('background-color', '#17171f', 'important');
+  input.style.setProperty('color', 'var(--paper)', 'important');
+  input.style.setProperty('-webkit-text-fill-color', 'var(--paper)', 'important');
+}
+document.addEventListener('animationstart', (e) => {
+  if (e.animationName === 'onAutoFillStart' && e.target.tagName === 'INPUT') forceDarkField(e.target);
+}, true);
+document.addEventListener('input', (e) => {
+  if (e.target.tagName === 'INPUT') forceDarkField(e.target);
+}, true);
+document.addEventListener('focus', (e) => {
+  if (e.target.tagName === 'INPUT') forceDarkField(e.target);
+}, true);
 
 render();
 </script>
