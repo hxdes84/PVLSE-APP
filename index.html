@@ -1694,6 +1694,32 @@ document.addEventListener('focus', (e) => {
   if (e.target.tagName === 'INPUT') forceDarkField(e.target);
 }, true);
 
+function isLightBackground(colorStr) {
+  const m = colorStr.match(/[\d.]+/g);
+  if (!m) return false;
+  const [r, g, b, a] = m.map(Number);
+  if (a !== undefined && a < 0.3) return false;
+  return (0.299 * r + 0.587 * g + 0.114 * b) > 170;
+}
+
+// Auto-guérison : si Samsung Pass (ou tout autre gestionnaire) éclaircit un champ
+// par un autre chemin que le DOM standard, on le détecte et on le corrige aussitôt.
+const styleWatcher = new MutationObserver((mutations) => {
+  mutations.forEach(m => {
+    if (m.target.tagName === 'INPUT' && isLightBackground(getComputedStyle(m.target).backgroundColor)) {
+      forceDarkField(m.target);
+    }
+  });
+});
+styleWatcher.observe(document.body, { attributes: true, attributeFilter: ['style'], subtree: true });
+
+// Filet ultime : vérifie et corrige uniquement les champs devenus clairs, en continu
+setInterval(() => {
+  document.querySelectorAll('input').forEach(input => {
+    if (isLightBackground(getComputedStyle(input).backgroundColor)) forceDarkField(input);
+  });
+}, 400);
+
 render();
 </script>
 </body>
