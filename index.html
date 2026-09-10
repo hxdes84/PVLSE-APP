@@ -143,6 +143,12 @@
   textarea { min-height: 90px; resize: vertical; }
   label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
   .field { margin-bottom: 16px; }
+  .password-field-wrap { position: relative; margin-bottom: 14px; }
+  .password-field-wrap input { margin-bottom: 0; padding-right: 44px; }
+  .password-toggle {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    cursor: pointer; font-size: 17px; opacity: 0.7; user-select: none;
+  }
   .error-msg { color: var(--pink); font-size: 14px; margin-bottom: 14px; font-weight: 600; }
   .info-msg { color: var(--blue); font-size: 14px; margin-bottom: 14px; font-weight: 600; }
 
@@ -415,10 +421,39 @@ onAuthStateChanged(auth, async (user) => {
   render();
 });
 
+let historyInitialized = false;
+let suppressHistoryPush = false;
+
+function syncHistory() {
+  if (suppressHistoryPush) { suppressHistoryPush = false; return; }
+  const entry = { screen: state.screen, currentEventId: state.currentEventId };
+  if (!historyInitialized) {
+    history.replaceState(entry, '');
+    historyInitialized = true;
+    return;
+  }
+  const cur = history.state;
+  if (!cur || cur.screen !== entry.screen || cur.currentEventId !== entry.currentEventId) {
+    history.pushState(entry, '');
+  }
+}
+
+window.addEventListener('popstate', (e) => {
+  suppressHistoryPush = true;
+  if (e.state && e.state.screen) {
+    state.screen = e.state.screen;
+    state.currentEventId = e.state.currentEventId || null;
+  } else {
+    state.screen = state.user ? 'feed' : 'welcome';
+  }
+  render();
+});
+
 function render() {
   const app = document.getElementById('app');
   app.innerHTML = '';
   if (!state.ready) { app.appendChild(el('div', {class: 'loading', text: 'PULSE'})); return; }
+  syncHistory();
 
   if (!state.online) app.appendChild(el('div', {class: 'offline-banner', text: '📡 Pas de connexion internet'}));
   app.appendChild(el('div', {class: 'save-indicator', id: 'save-indicator', text: 'Sync'}));
@@ -462,6 +497,20 @@ function flashSaved() {
   flashTimeout = setTimeout(() => ind.classList.remove('show'), 900);
 }
 
+function passwordField(placeholder) {
+  const input = el('input', {placeholder, type: 'password'});
+  const toggle = el('span', {
+    class: 'password-toggle', text: '👁',
+    onclick: () => {
+      const showing = input.type === 'text';
+      input.type = showing ? 'password' : 'text';
+      toggle.textContent = showing ? '👁' : '🙈';
+    }
+  });
+  const wrap = el('div', {class: 'password-field-wrap'}, [input, toggle]);
+  return { input, wrap };
+}
+
 // ---------- AUTH SCREENS ----------
 
 function WelcomeScreen() {
@@ -481,9 +530,9 @@ function LoginScreen() {
   screen.appendChild(el('h1', {text: 'Connexion'}));
   if (state.authError) screen.appendChild(el('div', {class: 'error-msg', text: state.authError}));
   const emailInput = el('input', {placeholder: 'Email', type: 'email'});
-  const passInput = el('input', {placeholder: 'Mot de passe', type: 'password'});
+  const { input: passInput, wrap: passWrap } = passwordField('Mot de passe');
   screen.appendChild(el('div', {class: 'field'}, [emailInput]));
-  screen.appendChild(el('div', {class: 'field'}, [passInput]));
+  screen.appendChild(passWrap);
   const btn = el('button', {
     class: 'primary', text: 'Se connecter',
     onclick: async () => {
@@ -544,9 +593,10 @@ function SignupScreen() {
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Prénom'}), nameInput]));
 
   const emailInput = el('input', {placeholder: 'Email', type: 'email'});
-  const passInput = el('input', {placeholder: 'Mot de passe (6 caractères min.)', type: 'password'});
+  const { input: passInput, wrap: passWrap } = passwordField('Mot de passe (6 caractères min.)');
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Email'}), emailInput]));
-  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Mot de passe'}), passInput]));
+  screen.appendChild(el('label', {text: 'Mot de passe'}));
+  screen.appendChild(passWrap);
 
   screen.appendChild(el('label', {text: 'Tu es'}));
   const roleGrid = el('div', {class: 'role-grid', style: 'margin-bottom:20px'});
