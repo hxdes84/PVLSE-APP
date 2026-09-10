@@ -458,7 +458,7 @@ function render() {
   if (!state.ready) { app.appendChild(el('div', {class: 'loading', text: 'PULSE'})); return; }
   syncHistory();
 
-  if (!state.online) app.appendChild(el('div', {class: 'offline-banner', text: '📡 Pas de connexion internet'}));
+  if (!state.online) app.appendChild(el('div', {class: 'offline-banner'}, iconLabel('offline', 'Pas de connexion internet', 14)));
   app.appendChild(el('div', {class: 'save-indicator', id: 'save-indicator', text: 'Sync'}));
 
   if (state.showOnboarding) { app.appendChild(OnboardingScreen()); return; }
@@ -477,6 +477,32 @@ function render() {
   else if (state.screen === 'my-events') app.appendChild(MyEventsScreen());
   else if (state.screen === 'history') app.appendChild(HistoryScreen());
   else if (state.screen === 'other-profile') app.appendChild(OtherProfileScreen());
+}
+
+function iconSvg(name, size) {
+  size = size || 15;
+  const icons = {
+    eye: '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/>',
+    eyeOff: '<path d="M3 3l18 18"/><path d="M10.6 5.1A11 11 0 0 1 12 5c7 0 11 7 11 7a17.7 17.7 0 0 1-3.2 4.1M6.5 6.6C3.8 8.3 2 11 2 12s4 7 11 7c1.5 0 2.9-.3 4.1-.8"/><path d="M9.5 9.5a3 3 0 0 0 4.2 4.2"/>',
+    list: '<line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="14" y2="18"/>',
+    map: '<polygon points="3,6 9,3 15,6 21,3 21,18 15,21 9,18 3,21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/>',
+    instagram: '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r="1.1" fill="currentColor" stroke="none"/>',
+    facebook: '<path d="M15 21v-8h3l.5-4H15V6.5a1.5 1.5 0 0 1 1.5-1.5H18V1.5A22 22 0 0 0 15.5 1 4.5 4.5 0 0 0 11 5.5V9H8v4h3v8z"/>',
+    offline: '<path d="M1 9l2 2c4.9-4.9 12.1-4.9 17 0l2-2C15.9 2.9 8.1 2.9 1 9z"/><path d="M5 13l2 2a7.1 7.1 0 0 1 10 0l2-2a10 10 0 0 0-14 0z"/><line x1="3" y1="3" x2="21" y2="21"/><circle cx="12" cy="19" r="1" fill="currentColor" stroke="none"/>',
+    mail: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 6l10 7 10-7"/>',
+    calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/>',
+    pin: '<path d="M12 22s7-7.5 7-13a7 7 0 0 0-14 0c0 5.5 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/>'
+  };
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px; filter: drop-shadow(0 0 3px currentColor);">${icons[name]}</svg>`;
+}
+
+function iconLabel(name, label, size) {
+  const icon = document.createElement('span');
+  icon.innerHTML = iconSvg(name, size);
+  icon.style.cssText = 'display:inline-flex; vertical-align:-2px; margin-right:6px;';
+  const nodes = [icon];
+  if (label) nodes.push(document.createTextNode(label));
+  return nodes;
 }
 
 function el(tag, attrs = {}, children = []) {
@@ -503,11 +529,11 @@ function flashSaved() {
 function passwordField(placeholder) {
   const input = el('input', {placeholder, type: 'password'});
   const toggle = el('span', {
-    class: 'password-toggle', text: '👁',
+    class: 'password-toggle', html: iconSvg('eye', 18),
     onclick: () => {
       const showing = input.type === 'text';
       input.type = showing ? 'password' : 'text';
-      toggle.textContent = showing ? '👁' : '🙈';
+      toggle.innerHTML = iconSvg(showing ? 'eye' : 'eyeOff', 18);
     }
   });
   const wrap = el('div', {class: 'password-field-wrap'}, [input, toggle]);
@@ -804,7 +830,7 @@ function ProfileScreen() {
       }
     };
     const vb = el('div', {class: 'verify-banner'}, [
-      el('div', {text: '✉️ Email non vérifié.'}),
+      el('div', {}, iconLabel('mail', 'Email non vérifié.', 14)),
       resendBtn,
       verifyStatus
     ]);
@@ -901,16 +927,16 @@ function OtherProfileScreen() {
     const socialRow = el('div', {style: 'display:flex; gap:10px; margin-top:16px; margin-bottom:20px; flex-wrap:wrap;'});
     if (p.instagram) {
       socialRow.appendChild(el('span', {
-        class: 'style-chip', text: '📷 @' + p.instagram, style: 'border-color:var(--pink-dim); color:var(--pink);',
+        class: 'style-chip', style: 'border-color:var(--pink-dim); color:var(--pink);',
         onclick: () => window.open('https://instagram.com/' + p.instagram, '_blank')
-      }));
+      }, iconLabel('instagram', '@' + p.instagram)));
     }
     if (p.facebook) {
       const fbUrl = p.facebook.startsWith('http') ? p.facebook : 'https://' + p.facebook;
       socialRow.appendChild(el('span', {
-        class: 'style-chip', text: '👤 Facebook', style: 'border-color:var(--blue-dim); color:var(--blue);',
+        class: 'style-chip', style: 'border-color:var(--blue-dim); color:var(--blue);',
         onclick: () => window.open(fbUrl, '_blank')
-      }));
+      }, iconLabel('facebook', 'Facebook')));
     }
     screen.appendChild(socialRow);
   }
@@ -973,13 +999,13 @@ function FeedScreen() {
 
   const toggleRow = el('div', {class: 'view-toggle'});
   toggleRow.appendChild(el('span', {
-    class: 'view-toggle-btn' + (state.viewMode === 'list' ? ' active' : ''), text: '📋 Liste',
+    class: 'view-toggle-btn' + (state.viewMode === 'list' ? ' active' : ''),
     onclick: () => { state.viewMode = 'list'; render(); }
-  }));
+  }, iconLabel('list', 'Liste')));
   toggleRow.appendChild(el('span', {
-    class: 'view-toggle-btn' + (state.viewMode === 'map' ? ' active' : ''), text: '🗺️ Carte',
+    class: 'view-toggle-btn' + (state.viewMode === 'map' ? ' active' : ''),
     onclick: () => { state.viewMode = 'map'; render(); }
-  }));
+  }, iconLabel('map', 'Carte')));
   screen.appendChild(toggleRow);
 
   if (state.viewMode === 'map') {
@@ -1193,7 +1219,7 @@ function MapFullScreen() {
   const controls = el('div', {class: 'map-floating-controls'});
   controls.appendChild(el('div', {class: 'map-floating-topbar'}, [
     el('div', {class: 'brand', text: 'PULSE', style: 'margin-bottom:0;'}),
-    el('span', {class: 'map-nav-btn', text: '📋 Liste', onclick: () => { state.viewMode = 'list'; render(); }})
+    el('span', {class: 'map-nav-btn', onclick: () => { state.viewMode = 'list'; render(); }}, iconLabel('list', 'Liste'))
   ]));
 
   const searchPanel = el('div', {class: 'map-search-panel'});
@@ -1218,8 +1244,12 @@ function MapFullScreen() {
   controls.appendChild(searchPanel);
 
   if (state.mapSearchLabel) {
+    const pinIcon2 = document.createElement('span');
+    pinIcon2.innerHTML = iconSvg('pin', 14);
+    pinIcon2.style.cssText = 'display:inline-flex; vertical-align:-2px; margin-right:5px;';
     controls.appendChild(el('div', {class: 'map-floating-label'}, [
-      document.createTextNode('📍 ' + state.mapSearchLabel + ' — ' + state.mapSearchRadius + ' km'),
+      pinIcon2,
+      document.createTextNode(state.mapSearchLabel + ' — ' + state.mapSearchRadius + ' km'),
       el('span', {text: ' ✕', style: 'color:var(--pink); cursor:pointer; font-weight:700; margin-left:8px;', onclick: () => {
         state.mapSearchCenter = null; state.mapSearchLabel = ''; state.mapSearchCity = ''; render();
       }})
@@ -1392,9 +1422,9 @@ function DetailScreen() {
   screen.appendChild(actionRow);
 
   screen.appendChild(el('button', {
-    class: 'secondary', text: '📅 Ajouter à mon calendrier', style: 'margin-top:0; margin-bottom:16px;',
+    class: 'secondary', style: 'margin-top:0; margin-bottom:16px;',
     onclick: () => downloadICS(ev)
-  }));
+  }, iconLabel('calendar', 'Ajouter à mon calendrier', 14)));
 
   const attList = el('div', {class: 'attendee-list'});
   attList.appendChild(el('h4', {text: 'Qui vient'}));
