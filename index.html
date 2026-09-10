@@ -169,7 +169,6 @@
     border: 1px solid var(--blue-dim);
     box-shadow: 0 0 18px rgba(47,217,255,0.22), inset 0 0 30px rgba(6,6,8,0.4);
     background: #0a0a10; position: relative;
-    filter: saturate(1.35) contrast(1.08) brightness(0.95);
   }
   .event-map .leaflet-tile-pane { filter: hue-rotate(0deg); }
   .event-map-loading { color: var(--muted); font-size: 13px; font-family: 'Orbitron', sans-serif; letter-spacing: 0.05em; display: flex; align-items: center; justify-content: center; height: 100%; }
@@ -208,24 +207,27 @@
     font-weight: 700; font-size: 14px; cursor: pointer; box-shadow: 0 0 14px rgba(47,217,255,0.35);
   }
 
-  .france-map { height: 60vh; min-height: 380px; border-radius: 6px; overflow: hidden; margin-bottom: 16px;
-    border: 1px solid var(--blue-dim); box-shadow: 0 0 18px rgba(47,217,255,0.22); background: #0a0a10;
-    filter: saturate(1.35) contrast(1.08) brightness(0.95); position: relative;
+  .map-fullscreen { position: absolute; inset: 0; z-index: 10; background: var(--bg); display: flex; flex-direction: column; overflow: hidden; }
+  .map-canvas { flex: 1; position: relative; }
+  .map-floating-controls {
+    position: absolute; top: max(14px, env(safe-area-inset-top)); left: 14px; right: 14px; z-index: 620;
+    display: flex; flex-direction: column; gap: 8px; pointer-events: none;
   }
-  .map-draw-overlay {
-    position: absolute; inset: 0; z-index: 640; pointer-events: none;
-    background-image:
-      repeating-linear-gradient(0deg, rgba(47,217,255,0.4) 0px, rgba(47,217,255,0.4) 1px, transparent 1px, transparent 34px),
-      repeating-linear-gradient(90deg, rgba(255,47,168,0.32) 0px, rgba(255,47,168,0.32) 1px, transparent 1px, transparent 34px);
-    animation: mapDrawFade 1.6s ease forwards;
+  .map-floating-controls > * { pointer-events: auto; }
+  .map-floating-topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(6,6,8,0.75); backdrop-filter: blur(8px); padding: 10px 14px;
+    border-radius: 10px; border: 1px solid var(--line);
   }
-  .map-draw-overlay::after {
-    content: ''; position: absolute; top: 0; left: -60%; width: 60%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(47,217,255,0.5), rgba(255,47,168,0.4), transparent);
-    animation: mapDrawSweep 1.6s ease-out forwards;
+  .map-search-panel {
+    background: rgba(6,6,8,0.75); backdrop-filter: blur(8px); padding: 12px;
+    border-radius: 10px; border: 1px solid var(--blue-dim); box-shadow: 0 0 14px rgba(47,217,255,0.15);
   }
-  @keyframes mapDrawFade { 0% { opacity: 1; } 55% { opacity: 0.65; } 100% { opacity: 0; } }
-  @keyframes mapDrawSweep { 0% { left: -60%; } 100% { left: 100%; } }
+  .map-search-panel .geo-search-row { margin-bottom: 0; }
+  .map-floating-label {
+    background: rgba(6,6,8,0.75); backdrop-filter: blur(8px); padding: 8px 12px;
+    border-radius: 10px; font-size: 13px; color: var(--muted); border: 1px solid var(--blue-dim);
+  }
 </style>
 </head>
 <body>
@@ -884,11 +886,7 @@ function FeedScreen() {
   screen.appendChild(toggleRow);
 
   if (state.viewMode === 'map') {
-    screen.appendChild(buildMapView());
-    if (state.profile.role === 'organizer' && (state.profile.isCreator || state.profile.verified === true)) {
-      screen.appendChild(el('button', {class: 'fab', text: '+', onclick: () => { state.screen = 'create'; render(); }}));
-    }
-    return screen;
+    return MapFullScreen();
   }
 
   const searchInput = el('input', {class: 'search-input', placeholder: 'Rechercher un titre, un lieu…', value: state.searchQuery});
@@ -1054,7 +1052,7 @@ async function initEventMap(container, ev) {
     const map = L.map(container, { zoomControl: false, attributionControl: true, dragging: true, scrollWheelZoom: false })
       .setView([coords.lat, coords.lng], 14);
 
-    L.tileLayer(`https://api.maptiler.com/maps/dataviz-dark/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`, {
+    L.tileLayer(`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`, {
       attribution: '© MapTiler © OpenStreetMap contributors',
       maxZoom: 19
     }).addTo(map);
@@ -1068,15 +1066,23 @@ async function initEventMap(container, ev) {
   }
 }
 
-function buildMapView() {
-  const wrap = el('div', {});
-  if (state.mapSearchError) wrap.appendChild(el('div', {class: 'error-msg', text: state.mapSearchError}));
+function MapFullScreen() {
+  const wrap = el('div', {class: 'map-fullscreen'});
 
-  const cityInput = el('input', {placeholder: 'Ville (ex. Avignon)', value: state.mapSearchCity});
+  const controls = el('div', {class: 'map-floating-controls'});
+  controls.appendChild(el('div', {class: 'map-floating-topbar'}, [
+    el('div', {class: 'brand', text: 'PULSE', style: 'margin-bottom:0;'}),
+    el('span', {class: 'role-pill', text: '📋 Liste', style: 'cursor:pointer;', onclick: () => { state.viewMode = 'list'; render(); }})
+  ]));
+
+  const searchPanel = el('div', {class: 'map-search-panel'});
+  if (state.mapSearchError) searchPanel.appendChild(el('div', {class: 'error-msg', style: 'margin-bottom:8px;', text: state.mapSearchError}));
+
+  const cityInput = el('input', {placeholder: 'Ville (ex. Avignon)', value: state.mapSearchCity, style: 'margin-bottom:0;'});
   cityInput.oninput = (e) => { state.mapSearchCity = e.target.value; };
   cityInput.onkeydown = (e) => { if (e.key === 'Enter') runGeoSearch(); };
 
-  const radiusSelect = el('select', {});
+  const radiusSelect = el('select', {style: 'margin-bottom:0;'});
   [10, 25, 50, 100, 200].forEach(km => {
     const opt = el('option', {text: km + ' km', value: String(km)});
     if (state.mapSearchRadius === km) opt.setAttribute('selected', 'selected');
@@ -1086,21 +1092,27 @@ function buildMapView() {
 
   const searchBtn = el('button', {class: 'geo-search-btn', text: state.mapSearching ? '…' : 'Chercher', onclick: () => runGeoSearch()});
 
-  wrap.appendChild(el('div', {class: 'geo-search-row'}, [cityInput, radiusSelect, searchBtn]));
+  searchPanel.appendChild(el('div', {class: 'geo-search-row'}, [cityInput, radiusSelect, searchBtn]));
+  controls.appendChild(searchPanel);
 
   if (state.mapSearchLabel) {
-    const clear = el('span', {text: ' ✕', style: 'color:var(--pink); cursor:pointer; font-weight:700;', onclick: () => {
-      state.mapSearchCenter = null; state.mapSearchLabel = ''; state.mapSearchCity = ''; render();
-    }});
-    wrap.appendChild(el('div', {class: 'sub', style: 'margin-bottom:10px; font-size:14px;'}, [
-      document.createTextNode('📍 Autour de ' + state.mapSearchLabel + ' — ' + state.mapSearchRadius + ' km'),
-      clear
+    controls.appendChild(el('div', {class: 'map-floating-label'}, [
+      document.createTextNode('📍 ' + state.mapSearchLabel + ' — ' + state.mapSearchRadius + ' km'),
+      el('span', {text: ' ✕', style: 'color:var(--pink); cursor:pointer; font-weight:700; margin-left:8px;', onclick: () => {
+        state.mapSearchCenter = null; state.mapSearchLabel = ''; state.mapSearchCity = ''; render();
+      }})
     ]));
   }
 
-  const mapContainer = el('div', {class: 'france-map'}, [el('div', {class: 'event-map-loading', text: 'Chargement de la carte…'})]);
-  wrap.appendChild(mapContainer);
-  setTimeout(() => renderFranceMap(mapContainer), 0);
+  wrap.appendChild(controls);
+
+  const mapCanvas = el('div', {class: 'map-canvas'}, [el('div', {class: 'event-map-loading', text: 'Chargement de la carte…'})]);
+  wrap.appendChild(mapCanvas);
+  setTimeout(() => renderFranceMap(mapCanvas), 0);
+
+  if (state.profile.role === 'organizer' && (state.profile.isCreator || state.profile.verified === true)) {
+    wrap.appendChild(el('button', {class: 'fab', text: '+', onclick: () => { state.screen = 'create'; render(); }}));
+  }
 
   return wrap;
 
@@ -1141,7 +1153,7 @@ async function renderFranceMap(container) {
   container.innerHTML = '';
   const map = L.map(container, { zoomControl: true, attributionControl: true }).setView([46.6, 2.3], 6);
 
-  L.tileLayer(`https://api.maptiler.com/maps/dataviz-dark/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`, {
+  L.tileLayer(`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`, {
     attribution: '© MapTiler © OpenStreetMap contributors',
     maxZoom: 19
   }).addTo(map);
@@ -1185,12 +1197,7 @@ async function renderFranceMap(container) {
     emptyCtrl.addTo(map);
   }
 
-  // Effet Tron : grille néon qui se dessine puis se dissipe pendant que la caméra "vole" vers la zone
-  const overlay = document.createElement('div');
-  overlay.className = 'map-draw-overlay';
-  container.appendChild(overlay);
-  setTimeout(() => overlay.remove(), 1700);
-
+  // La caméra "vole" en douceur vers la zone recherchée (ou vers l'ensemble des soirées)
   setTimeout(() => {
     map.invalidateSize();
     if (state.mapSearchCenter) {
