@@ -36,7 +36,7 @@
       var(--bg);
     display: flex; flex-direction: column; position: relative; transition: background 0.3s ease, color 0.3s ease;
   }
-  .screen { padding: max(28px, env(safe-area-inset-top)) 22px calc(100px + env(safe-area-inset-bottom)); flex: 1; position: relative; animation: screenIn 0.45s ease; overflow: hidden; }
+  .screen { padding: max(28px, env(safe-area-inset-top)) 22px calc(100px + env(safe-area-inset-bottom)); flex: 1; position: relative; animation: screenIn 0.45s ease; overflow-x: hidden; }
   @keyframes screenIn {
     0% { opacity: 0; transform: translateY(6px); }
     100% { opacity: 1; transform: translateY(0); }
@@ -504,7 +504,7 @@ function SignupScreen() {
       try {
         const cred = await createUserWithEmailAndPassword(auth, emailInput.value.trim(), passInput.value);
         try { await sendEmailVerification(cred.user); } catch(e) {}
-        const profile = { name, role: state.pendingRole, danceStyles: state.pendingStyles, acceptedLegalAt: Date.now(), favorites: [] };
+        const profile = { name, role: state.pendingRole, danceStyles: state.pendingStyles, acceptedLegalAt: Date.now(), favorites: [], verified: state.pendingRole === 'organizer' ? false : true };
         await setDoc(doc(db, 'users', cred.user.uid), profile);
         state.profile = profile;
         state.showOnboarding = true;
@@ -556,7 +556,7 @@ function CompleteProfileScreen() {
       const name = nameInput.value.trim();
       if (!name || !state.pendingRole) return;
       btn.disabled = true; btn.textContent = 'Création…';
-      const profile = { name, role: state.pendingRole, danceStyles: state.pendingStyles, favorites: [] };
+      const profile = { name, role: state.pendingRole, danceStyles: state.pendingStyles, favorites: [], verified: state.pendingRole === 'organizer' ? false : true };
       await setDoc(doc(db, 'users', state.user.uid), profile);
       state.profile = profile;
       state.screen = 'feed';
@@ -620,6 +620,20 @@ function ProfileScreen() {
   screen.appendChild(el('h1', {text: 'Ton profil'}));
 
   if (state.user && !state.user.emailVerified) {
+    let pollActive = true;
+    const pollVerify = async () => {
+      while (pollActive) {
+        await new Promise(r => setTimeout(r, 4000));
+        if (!pollActive || state.screen !== 'profile') return;
+        try {
+          await state.user.reload();
+          state.user = auth.currentUser;
+          if (state.user.emailVerified) { render(); return; }
+        } catch (e) {}
+      }
+    };
+    pollVerify();
+
     const verifyStatus = el('span', {text: '', style: 'display:block; margin-top:6px; color:var(--blue); font-weight:700;'});
     const resendBtn = el('span', {class: 'link-btn', text: "Renvoyer l'email de vérification", style: 'display:inline-block; margin-top:6px;'});
     resendBtn.onclick = async () => {
@@ -742,7 +756,10 @@ function FeedScreen() {
   screen.appendChild(el('div', {class: 'topbar'}, [
     el('div', {class: 'brand', text: 'PULSE'}),
     el('div', {class: 'topbar-actions'}, [
-      el('button', {class: 'icon-btn', text: 'Profil', onclick: () => { state.screen = 'profile'; render(); }}),
+      el('button', {class: 'icon-btn', text: 'Profil', onclick: async () => {
+        try { await state.user.reload(); state.user = auth.currentUser; } catch(e) {}
+        state.screen = 'profile'; render();
+      }}),
       state.profile.isCreator ? el('span', {class: 'dept-badge', text: '★ Créateur·rice', style: 'margin-bottom:0'}) : null,
       el('div', {
         class: 'role-pill', text: (state.profile.role === 'dancer' ? 'Danseur·se' : 'Organisateur·rice') + '  ⇄',
@@ -814,7 +831,11 @@ function FeedScreen() {
   screen.appendChild(list);
 
   if (state.profile.role === 'organizer') {
-    screen.appendChild(el('button', {class: 'fab', text: '+', onclick: () => { state.screen = 'create'; render(); }}));
+    if (state.profile.isCreator || state.profile.verified === true) {
+      screen.appendChild(el('button', {class: 'fab', text: '+', onclick: () => { state.screen = 'create'; render(); }}));
+    } else {
+      screen.appendChild(el('div', {class: 'verify-banner', text: '⏳ Ton compte organisateur est en attente de vérification. Tu pourras publier des soirées une fois validé.', style: 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); width:calc(100% - 44px); max-width:416px;'}));
+    }
   }
   return screen;
 }
