@@ -458,10 +458,15 @@ function SignupScreen() {
 
   screen.appendChild(el('label', {text: 'Tu es'}));
   const roleGrid = el('div', {class: 'role-grid', style: 'margin-bottom:20px'});
-  const dancerCard = el('div', { class: 'role-card', onclick: () => { state.pendingRole = 'dancer'; render(); } }, [el('h3', {text: 'Danseur·se'})]);
-  const orgCard = el('div', { class: 'role-card', onclick: () => { state.pendingRole = 'organizer'; render(); } }, [el('h3', {text: 'Organisateur·rice'})]);
-  if (state.pendingRole === 'dancer') dancerCard.style.borderColor = 'var(--blue)';
-  if (state.pendingRole === 'organizer') orgCard.style.borderColor = 'var(--blue)';
+  const dancerCard = el('div', { class: 'role-card' }, [el('h3', {text: 'Danseur·se'})]);
+  const orgCard = el('div', { class: 'role-card' }, [el('h3', {text: 'Organisateur·rice'})]);
+  const updateRoleCards = () => {
+    dancerCard.style.borderColor = state.pendingRole === 'dancer' ? 'var(--blue)' : '';
+    orgCard.style.borderColor = state.pendingRole === 'organizer' ? 'var(--blue)' : '';
+  };
+  dancerCard.onclick = () => { state.pendingRole = 'dancer'; updateRoleCards(); };
+  orgCard.onclick = () => { state.pendingRole = 'organizer'; updateRoleCards(); };
+  updateRoleCards();
   roleGrid.appendChild(dancerCard); roleGrid.appendChild(orgCard);
   screen.appendChild(roleGrid);
 
@@ -474,7 +479,7 @@ function SignupScreen() {
       onclick: () => {
         if (state.pendingStyles.includes(style)) state.pendingStyles = state.pendingStyles.filter(s => s !== style);
         else state.pendingStyles.push(style);
-        render();
+        chip.className = 'style-chip' + (state.pendingStyles.includes(style) ? ' active' : '');
       }
     });
     styleWrap.appendChild(chip);
@@ -529,10 +534,15 @@ function CompleteProfileScreen() {
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Prénom'}), nameInput]));
   screen.appendChild(el('label', {text: 'Tu es'}));
   const roleGrid = el('div', {class: 'role-grid', style: 'margin-bottom:20px'});
-  const dancerCard = el('div', { class: 'role-card', onclick: () => { state.pendingRole = 'dancer'; render(); } }, [el('h3', {text: 'Danseur·se'})]);
-  const orgCard = el('div', { class: 'role-card', onclick: () => { state.pendingRole = 'organizer'; render(); } }, [el('h3', {text: 'Organisateur·rice'})]);
-  if (state.pendingRole === 'dancer') dancerCard.style.borderColor = 'var(--blue)';
-  if (state.pendingRole === 'organizer') orgCard.style.borderColor = 'var(--blue)';
+  const dancerCard = el('div', { class: 'role-card' }, [el('h3', {text: 'Danseur·se'})]);
+  const orgCard = el('div', { class: 'role-card' }, [el('h3', {text: 'Organisateur·rice'})]);
+  const updateRoleCards = () => {
+    dancerCard.style.borderColor = state.pendingRole === 'dancer' ? 'var(--blue)' : '';
+    orgCard.style.borderColor = state.pendingRole === 'organizer' ? 'var(--blue)' : '';
+  };
+  dancerCard.onclick = () => { state.pendingRole = 'dancer'; updateRoleCards(); };
+  orgCard.onclick = () => { state.pendingRole = 'organizer'; updateRoleCards(); };
+  updateRoleCards();
   roleGrid.appendChild(dancerCard); roleGrid.appendChild(orgCard);
   screen.appendChild(roleGrid);
   screen.appendChild(el('label', {text: 'Danses pratiquées'}));
@@ -544,7 +554,7 @@ function CompleteProfileScreen() {
       onclick: () => {
         if (state.pendingStyles.includes(style)) state.pendingStyles = state.pendingStyles.filter(s => s !== style);
         else state.pendingStyles.push(style);
-        render();
+        chip.className = 'style-chip' + (state.pendingStyles.includes(style) ? ' active' : '');
       }
     });
     styleWrap.appendChild(chip);
