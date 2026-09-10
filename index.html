@@ -13,6 +13,8 @@
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&family=Rajdhani:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   :root {
     --bg: #060608;
@@ -161,6 +163,69 @@
   .checkbox-row { display: flex; align-items: flex-start; gap: 0; margin-bottom: 20px; font-size: 14px; color: var(--muted); }
   .checkbox-row input { width: auto; margin-right: 8px; margin-top: 3px; }
   .checkbox-row label { text-transform: none; font-weight: 500; letter-spacing: normal; margin: 0; cursor: pointer; }
+
+  .event-map {
+    height: 210px; border-radius: 6px; overflow: hidden; margin-bottom: 16px;
+    border: 1px solid var(--blue-dim);
+    box-shadow: 0 0 18px rgba(47,217,255,0.22), inset 0 0 30px rgba(6,6,8,0.4);
+    background: #0a0a10; position: relative;
+    filter: saturate(1.35) contrast(1.08) brightness(0.95);
+  }
+  .event-map .leaflet-tile-pane { filter: hue-rotate(0deg); }
+  .event-map-loading { color: var(--muted); font-size: 13px; font-family: 'Orbitron', sans-serif; letter-spacing: 0.05em; display: flex; align-items: center; justify-content: center; height: 100%; }
+  .neon-marker { background: transparent; border: none; }
+  .neon-dot {
+    width: 16px; height: 16px; border-radius: 50%; background: var(--pink);
+    box-shadow: 0 0 4px 1px #fff, 0 0 14px 5px rgba(255,47,168,0.85), 0 0 26px 10px rgba(255,47,168,0.35);
+    border: 2px solid #fff;
+  }
+  .leaflet-control-attribution {
+    background: rgba(6,6,8,0.75) !important; color: var(--muted) !important; font-size: 9px !important;
+  }
+  .leaflet-control-attribution a { color: var(--blue) !important; }
+  .leaflet-control-zoom a {
+    background: rgba(6,6,8,0.85) !important; color: var(--blue) !important; border-color: var(--blue-dim) !important;
+  }
+  .leaflet-popup-content-wrapper {
+    background: #0d0d14 !important; color: var(--paper) !important; border: 1px solid var(--blue-dim) !important;
+    border-radius: 6px !important; box-shadow: 0 0 16px rgba(47,217,255,0.25) !important;
+  }
+  .leaflet-popup-tip { background: #0d0d14 !important; }
+  .leaflet-popup-close-button { color: var(--muted) !important; }
+
+  .view-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
+  .view-toggle-btn {
+    flex: 1; text-align: center; padding: 10px; border-radius: 6px; border: 1px solid var(--line);
+    color: var(--muted); font-weight: 700; font-size: 14px; cursor: pointer; font-family: 'Rajdhani', sans-serif;
+  }
+  .view-toggle-btn.active { border-color: var(--pink); color: var(--pink); background: rgba(255,47,168,0.08); box-shadow: 0 0 10px rgba(255,47,168,0.2); }
+
+  .geo-search-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .geo-search-row input { margin-bottom: 0; flex: 2; }
+  .geo-search-row select { margin-bottom: 0; flex: 1; }
+  .geo-search-btn {
+    background: var(--blue); color: #0a0510; border: none; border-radius: 6px; padding: 0 16px;
+    font-weight: 700; font-size: 14px; cursor: pointer; box-shadow: 0 0 14px rgba(47,217,255,0.35);
+  }
+
+  .france-map { height: 60vh; min-height: 380px; border-radius: 6px; overflow: hidden; margin-bottom: 16px;
+    border: 1px solid var(--blue-dim); box-shadow: 0 0 18px rgba(47,217,255,0.22); background: #0a0a10;
+    filter: saturate(1.35) contrast(1.08) brightness(0.95); position: relative;
+  }
+  .map-draw-overlay {
+    position: absolute; inset: 0; z-index: 640; pointer-events: none;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(47,217,255,0.4) 0px, rgba(47,217,255,0.4) 1px, transparent 1px, transparent 34px),
+      repeating-linear-gradient(90deg, rgba(255,47,168,0.32) 0px, rgba(255,47,168,0.32) 1px, transparent 1px, transparent 34px);
+    animation: mapDrawFade 1.6s ease forwards;
+  }
+  .map-draw-overlay::after {
+    content: ''; position: absolute; top: 0; left: -60%; width: 60%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(47,217,255,0.5), rgba(255,47,168,0.4), transparent);
+    animation: mapDrawSweep 1.6s ease-out forwards;
+  }
+  @keyframes mapDrawFade { 0% { opacity: 1; } 55% { opacity: 0.65; } 100% { opacity: 0; } }
+  @keyframes mapDrawSweep { 0% { left: -60%; } 100% { left: 100%; } }
 </style>
 </head>
 <body>
@@ -183,6 +248,8 @@ const firebaseConfig = {
 const fbApp = initializeApp(firebaseConfig);
 const auth = getAuth(fbApp);
 const db = getFirestore(fbApp);
+
+const MAPTILER_KEY = "x3s9Whky7gIYlhbSB6MT";
 
 const DANCE_STYLES = ["Bachata", "Salsa", "Kizomba", "West Coast Swing", "Zouk", "Tango", "Autre"];
 const DEPARTMENTS = [
@@ -281,7 +348,14 @@ let state = {
   showOnboarding: false,
   online: navigator.onLine,
   countedViews: new Set(),
-  dismissedNotices: JSON.parse(localStorage.getItem('pulse-dismissed-notices') || '[]')
+  dismissedNotices: JSON.parse(localStorage.getItem('pulse-dismissed-notices') || '[]'),
+  viewMode: 'list',
+  mapSearchCity: '',
+  mapSearchRadius: 50,
+  mapSearchCenter: null,
+  mapSearchLabel: '',
+  mapSearching: false,
+  mapSearchError: ''
 };
 
 window.addEventListener('online', () => { state.online = true; render(); });
@@ -798,6 +872,25 @@ function FeedScreen() {
 
   screen.appendChild(el('h1', {text: 'Soirées à venir'}));
 
+  const toggleRow = el('div', {class: 'view-toggle'});
+  toggleRow.appendChild(el('span', {
+    class: 'view-toggle-btn' + (state.viewMode === 'list' ? ' active' : ''), text: '📋 Liste',
+    onclick: () => { state.viewMode = 'list'; render(); }
+  }));
+  toggleRow.appendChild(el('span', {
+    class: 'view-toggle-btn' + (state.viewMode === 'map' ? ' active' : ''), text: '🗺️ Carte',
+    onclick: () => { state.viewMode = 'map'; render(); }
+  }));
+  screen.appendChild(toggleRow);
+
+  if (state.viewMode === 'map') {
+    screen.appendChild(buildMapView());
+    if (state.profile.role === 'organizer' && (state.profile.isCreator || state.profile.verified === true)) {
+      screen.appendChild(el('button', {class: 'fab', text: '+', onclick: () => { state.screen = 'create'; render(); }}));
+    }
+    return screen;
+  }
+
   const searchInput = el('input', {class: 'search-input', placeholder: 'Rechercher un titre, un lieu…', value: state.searchQuery});
   searchInput.oninput = (e) => { state.searchQuery = e.target.value; renderFeedListOnly(); };
   screen.appendChild(searchInput);
@@ -911,6 +1004,203 @@ function buildFeedList() {
   return frag;
 }
 
+// ---------- MAP (MapTiler + Leaflet, DA Tron) ----------
+
+const geocodeCache = {};
+
+async function geocodePlace(query) {
+  if (!query) return null;
+  if (geocodeCache[query]) return geocodeCache[query];
+  try {
+    const res = await fetch(`https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&country=fr&limit=1`);
+    const data = await res.json();
+    if (!data.features || !data.features.length) { geocodeCache[query] = null; return null; }
+    const [lng, lat] = data.features[0].center;
+    const result = { lat, lng };
+    geocodeCache[query] = result;
+    return result;
+  } catch (e) {
+    return null;
+  }
+}
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function eventQueryString(ev) {
+  const deptName = ev.dept ? ev.dept.split(' - ')[1] : '';
+  return ev.place + (deptName ? ', ' + deptName : '') + ', France';
+}
+
+async function initEventMap(container, ev) {
+  if (!ev.place) { container.remove(); return; }
+  container.innerHTML = '<div class="event-map-loading">Localisation…</div>';
+  try {
+    let coords;
+    if (typeof ev.lat === 'number' && typeof ev.lng === 'number') {
+      coords = { lat: ev.lat, lng: ev.lng };
+    } else {
+      coords = await geocodePlace(eventQueryString(ev));
+      if (coords) updateDoc(doc(db, 'events', ev.id), { lat: coords.lat, lng: coords.lng }).catch(() => {});
+    }
+    if (!coords) throw new Error('no-result');
+
+    container.innerHTML = '';
+    const map = L.map(container, { zoomControl: false, attributionControl: true, dragging: true, scrollWheelZoom: false })
+      .setView([coords.lat, coords.lng], 14);
+
+    L.tileLayer(`https://api.maptiler.com/maps/dataviz-dark/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`, {
+      attribution: '© MapTiler © OpenStreetMap contributors',
+      maxZoom: 19
+    }).addTo(map);
+
+    const neonIcon = L.divIcon({ className: 'neon-marker', html: '<div class="neon-dot"></div>', iconSize: [16, 16], iconAnchor: [8, 8] });
+    L.marker([coords.lat, coords.lng], { icon: neonIcon }).addTo(map);
+
+    setTimeout(() => map.invalidateSize(), 50);
+  } catch (e) {
+    container.innerHTML = '<div class="event-map-loading">Carte indisponible</div>';
+  }
+}
+
+function buildMapView() {
+  const wrap = el('div', {});
+  if (state.mapSearchError) wrap.appendChild(el('div', {class: 'error-msg', text: state.mapSearchError}));
+
+  const cityInput = el('input', {placeholder: 'Ville (ex. Avignon)', value: state.mapSearchCity});
+  cityInput.oninput = (e) => { state.mapSearchCity = e.target.value; };
+  cityInput.onkeydown = (e) => { if (e.key === 'Enter') runGeoSearch(); };
+
+  const radiusSelect = el('select', {});
+  [10, 25, 50, 100, 200].forEach(km => {
+    const opt = el('option', {text: km + ' km', value: String(km)});
+    if (state.mapSearchRadius === km) opt.setAttribute('selected', 'selected');
+    radiusSelect.appendChild(opt);
+  });
+  radiusSelect.onchange = (e) => { state.mapSearchRadius = Number(e.target.value); };
+
+  const searchBtn = el('button', {class: 'geo-search-btn', text: state.mapSearching ? '…' : 'Chercher', onclick: () => runGeoSearch()});
+
+  wrap.appendChild(el('div', {class: 'geo-search-row'}, [cityInput, radiusSelect, searchBtn]));
+
+  if (state.mapSearchLabel) {
+    const clear = el('span', {text: ' ✕', style: 'color:var(--pink); cursor:pointer; font-weight:700;', onclick: () => {
+      state.mapSearchCenter = null; state.mapSearchLabel = ''; state.mapSearchCity = ''; render();
+    }});
+    wrap.appendChild(el('div', {class: 'sub', style: 'margin-bottom:10px; font-size:14px;'}, [
+      document.createTextNode('📍 Autour de ' + state.mapSearchLabel + ' — ' + state.mapSearchRadius + ' km'),
+      clear
+    ]));
+  }
+
+  const mapContainer = el('div', {class: 'france-map'}, [el('div', {class: 'event-map-loading', text: 'Chargement de la carte…'})]);
+  wrap.appendChild(mapContainer);
+  setTimeout(() => renderFranceMap(mapContainer), 0);
+
+  return wrap;
+
+  async function runGeoSearch() {
+    const city = state.mapSearchCity.trim();
+    if (!city) { state.mapSearchCenter = null; state.mapSearchLabel = ''; state.mapSearchError = ''; render(); return; }
+    state.mapSearching = true; state.mapSearchError = ''; render();
+    const coords = await geocodePlace(city + ', France');
+    state.mapSearching = false;
+    if (!coords) { state.mapSearchError = 'Ville introuvable.'; render(); return; }
+    state.mapSearchCenter = coords;
+    state.mapSearchLabel = city;
+    render();
+  }
+}
+
+async function renderFranceMap(container) {
+  let events = state.events.filter(ev => !isEventHidden(ev) && ev.status !== 'cancelled');
+
+  const toGeocode = events.filter(ev => typeof ev.lat !== 'number' || typeof ev.lng !== 'number');
+  if (toGeocode.length) {
+    await Promise.all(toGeocode.map(async (ev) => {
+      const coords = await geocodePlace(eventQueryString(ev));
+      if (coords) {
+        ev.lat = coords.lat; ev.lng = coords.lng;
+        updateDoc(doc(db, 'events', ev.id), { lat: coords.lat, lng: coords.lng }).catch(() => {});
+      }
+    }));
+  }
+  events = events.filter(ev => typeof ev.lat === 'number' && typeof ev.lng === 'number');
+
+  if (state.mapSearchCenter) {
+    const c = state.mapSearchCenter;
+    events = events.filter(ev => haversineKm(c.lat, c.lng, ev.lat, ev.lng) <= state.mapSearchRadius);
+  }
+
+  if (!container.isConnected) return;
+  container.innerHTML = '';
+  const map = L.map(container, { zoomControl: true, attributionControl: true }).setView([46.6, 2.3], 6);
+
+  L.tileLayer(`https://api.maptiler.com/maps/dataviz-dark/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`, {
+    attribution: '© MapTiler © OpenStreetMap contributors',
+    maxZoom: 19
+  }).addTo(map);
+
+  if (state.mapSearchCenter) {
+    L.circle([state.mapSearchCenter.lat, state.mapSearchCenter.lng], {
+      radius: state.mapSearchRadius * 1000, color: '#2fd9ff', weight: 1, fillColor: '#2fd9ff', fillOpacity: 0.06
+    }).addTo(map);
+  }
+
+  function markerSizeFor(ev) {
+    const n = (ev.attendees || []).length;
+    return Math.min(46, 16 + n * 3);
+  }
+
+  const markers = [];
+  events.forEach(ev => {
+    const size = markerSizeFor(ev);
+    const neonIcon = L.divIcon({
+      className: 'neon-marker',
+      html: `<div class="neon-dot" style="width:${size}px;height:${size}px;"></div>`,
+      iconSize: [size, size], iconAnchor: [size / 2, size / 2]
+    });
+    const popupContent = el('div', {style: 'min-width:170px;'}, [
+      el('div', {style: 'font-family:Orbitron,sans-serif;font-size:11px;color:#2fd9ff;margin-bottom:4px;letter-spacing:0.05em;', text: formatEventDate(ev.dateISO) + ' · ' + ev.time}),
+      el('div', {style: 'font-weight:700;margin-bottom:4px;', text: ev.title}),
+      el('div', {style: 'font-size:12px;color:rgba(245,243,248,0.6);margin-bottom:8px;', text: ev.place + ' · ' + (ev.attendees || []).length + ' inscrit·e·s'}),
+      el('span', {style: 'color:#2fd9ff;font-weight:700;cursor:pointer;font-size:13px;', text: 'Voir la soirée →', onclick: () => { state.currentEventId = ev.id; state.screen = 'detail'; render(); }})
+    ]);
+    markers.push(L.marker([ev.lat, ev.lng], {icon: neonIcon}).addTo(map).bindPopup(popupContent));
+  });
+
+  if (markers.length === 0) {
+    const emptyCtrl = L.control({position: 'topleft'});
+    emptyCtrl.onAdd = function () {
+      const d = L.DomUtil.create('div');
+      d.style.cssText = 'background:rgba(6,6,8,0.85); color:rgba(245,243,248,0.6); padding:8px 12px; border-radius:6px; font-size:13px; margin:8px; font-weight:600;';
+      d.textContent = state.mapSearchCenter ? 'Aucune soirée dans ce rayon.' : 'Aucune soirée à afficher.';
+      return d;
+    };
+    emptyCtrl.addTo(map);
+  }
+
+  // Effet Tron : grille néon qui se dessine puis se dissipe pendant que la caméra "vole" vers la zone
+  const overlay = document.createElement('div');
+  overlay.className = 'map-draw-overlay';
+  container.appendChild(overlay);
+  setTimeout(() => overlay.remove(), 1700);
+
+  setTimeout(() => {
+    map.invalidateSize();
+    if (state.mapSearchCenter) {
+      map.flyTo([state.mapSearchCenter.lat, state.mapSearchCenter.lng], 11, { duration: 1.5 });
+    } else if (markers.length) {
+      map.flyToBounds(L.featureGroup(markers).getBounds().pad(0.3), { maxZoom: 13, duration: 1.5 });
+    }
+  }, 60);
+}
+
 // ---------- DETAIL ----------
 
 function DetailScreen() {
@@ -949,6 +1239,10 @@ function DetailScreen() {
   screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Prix'}), el('div', {text: ev.price ? ev.price + ' €' : 'Gratuit'})]));
   screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Participants'}), el('div', {text: attendees.length + ' inscrit·e·s'})]));
   screen.appendChild(el('div', {class: 'detail-desc', text: ev.desc}));
+
+  const mapContainer = el('div', {class: 'event-map'}, [el('div', {class: 'event-map-loading', text: 'Localisation…'})]);
+  screen.appendChild(mapContainer);
+  setTimeout(() => initEventMap(mapContainer, ev), 0);
 
   const actionRow = el('div', {style: 'display:flex; gap:10px; margin-bottom:16px;'});
   actionRow.appendChild(el('button', {
@@ -1184,6 +1478,8 @@ function EventFormScreen(existingEvent, mode) {
         price: priceInput.value ? Number(priceInput.value) : 0,
         desc: descInput.value || ''
       };
+      const coords = await geocodePlace(eventQueryString(payload));
+      if (coords) { payload.lat = coords.lat; payload.lng = coords.lng; }
       try {
         if (isEdit) {
           await updateDoc(doc(db, 'events', existingEvent.id), payload);
