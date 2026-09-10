@@ -13,8 +13,8 @@
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&family=Rajdhani:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <style>
   :root {
     --bg: #060608;
@@ -170,32 +170,30 @@
     box-shadow: 0 0 18px rgba(47,217,255,0.22), inset 0 0 30px rgba(6,6,8,0.4);
     background: #0a0a10; position: relative;
   }
-  .event-map .leaflet-tile-pane { filter: hue-rotate(0deg); }
   .event-map-loading { color: var(--muted); font-size: 13px; font-family: 'Orbitron', sans-serif; letter-spacing: 0.05em; display: flex; align-items: center; justify-content: center; height: 100%; }
   .neon-marker { background: transparent; border: none; }
-  .neon-dot {
-    width: 16px; height: 16px; border-radius: 50%; background: var(--pink);
-    box-shadow: 0 0 4px 1px #fff, 0 0 14px 5px rgba(255,47,168,0.85), 0 0 26px 10px rgba(255,47,168,0.35);
-    border: 2px solid #fff;
-  }
-  .leaflet-control-attribution {
+  .maplibregl-ctrl-attrib {
     background: rgba(6,6,8,0.75) !important; color: var(--muted) !important; font-size: 9px !important;
   }
-  .leaflet-control-attribution a { color: var(--blue) !important; }
-  .leaflet-control-zoom a {
-    background: rgba(6,6,8,0.85) !important; color: var(--blue) !important; border-color: var(--blue-dim) !important;
+  .maplibregl-ctrl-attrib a { color: var(--blue) !important; }
+  .maplibregl-ctrl-attrib-button { filter: invert(1); }
+  .maplibregl-ctrl-group {
+    background: rgba(6,6,8,0.85) !important; border: 1px solid var(--blue-dim) !important; box-shadow: 0 0 10px rgba(47,217,255,0.2) !important;
   }
-  .leaflet-popup-content-wrapper {
+  .maplibregl-ctrl-group button { background: transparent !important; }
+  .maplibregl-ctrl-icon { filter: invert(85%) sepia(50%) saturate(1000%) hue-rotate(150deg) brightness(1.1); }
+  .maplibregl-popup-content {
     background: #0d0d14 !important; color: var(--paper) !important; border: 1px solid var(--blue-dim) !important;
-    border-radius: 6px !important; box-shadow: 0 0 16px rgba(47,217,255,0.25) !important;
+    border-radius: 6px !important; box-shadow: 0 0 16px rgba(47,217,255,0.25) !important; padding: 12px !important;
   }
-  .leaflet-popup-tip { background: #0d0d14 !important; }
-  .leaflet-popup-close-button { color: var(--muted) !important; }
+  .maplibregl-popup-tip { border-top-color: #0d0d14 !important; border-bottom-color: #0d0d14 !important; }
+  .maplibregl-popup-close-button { color: var(--muted) !important; font-size: 16px !important; }
 
   .view-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
   .view-toggle-btn {
-    flex: 1; text-align: center; padding: 10px; border-radius: 6px; border: 1px solid var(--line);
-    color: var(--muted); font-weight: 700; font-size: 14px; cursor: pointer; font-family: 'Rajdhani', sans-serif;
+    flex: 1; text-align: center; padding: 10px; border-radius: 6px; border: 1px solid var(--blue-dim);
+    color: var(--blue); font-weight: 700; font-size: 14px; cursor: pointer; font-family: 'Rajdhani', sans-serif;
+    background: rgba(47,217,255,0.05);
   }
   .view-toggle-btn.active { border-color: var(--pink); color: var(--pink); background: rgba(255,47,168,0.08); box-shadow: 0 0 10px rgba(255,47,168,0.2); }
 
@@ -217,17 +215,31 @@
   .map-floating-topbar {
     display: flex; align-items: center; justify-content: space-between;
     background: rgba(6,6,8,0.75); backdrop-filter: blur(8px); padding: 10px 14px;
-    border-radius: 10px; border: 1px solid var(--line);
+    border-radius: 10px; border: 1px solid var(--pink-dim); box-shadow: 0 0 14px rgba(255,47,168,0.18);
+  }
+  .map-nav-btn {
+    font-size: 13px; font-weight: 700; padding: 6px 14px; border-radius: 20px; cursor: pointer;
+    color: var(--blue); border: 1px solid var(--blue-dim); background: rgba(47,217,255,0.08);
+    box-shadow: 0 0 10px rgba(47,217,255,0.25); text-shadow: 0 0 8px rgba(47,217,255,0.5);
+    letter-spacing: 0.02em;
   }
   .map-search-panel {
-    background: rgba(6,6,8,0.75); backdrop-filter: blur(8px); padding: 12px;
-    border-radius: 10px; border: 1px solid var(--blue-dim); box-shadow: 0 0 14px rgba(47,217,255,0.15);
+    background: rgba(6,6,8,0.78); backdrop-filter: blur(8px); padding: 12px;
+    border-radius: 10px; border: 1px solid var(--blue-dim); box-shadow: 0 0 16px rgba(47,217,255,0.2), 0 0 24px rgba(255,47,168,0.08);
   }
   .map-search-panel .geo-search-row { margin-bottom: 0; }
-  .map-floating-label {
-    background: rgba(6,6,8,0.75); backdrop-filter: blur(8px); padding: 8px 12px;
-    border-radius: 10px; font-size: 13px; color: var(--muted); border: 1px solid var(--blue-dim);
+  .map-search-title {
+    font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; margin-bottom: 8px;
+    background: linear-gradient(90deg, var(--pink), var(--blue));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
   }
+  .map-floating-label {
+    background: rgba(6,6,8,0.78); backdrop-filter: blur(8px); padding: 8px 12px;
+    border-radius: 10px; font-size: 13px; color: var(--paper); font-weight: 600;
+    border: 1px solid var(--pink-dim); box-shadow: 0 0 10px rgba(255,47,168,0.2);
+  }
+  .map-floating-label .pin-emoji { color: var(--blue); }
 </style>
 </head>
 <body>
@@ -252,6 +264,8 @@ const auth = getAuth(fbApp);
 const db = getFirestore(fbApp);
 
 const MAPTILER_KEY = "x3s9Whky7gIYlhbSB6MT";
+const MAP_STYLE_ID = "01a08b63-507e-7f12-82db-8b95441499bc";
+const MAP_STYLE_URL = `https://api.maptiler.com/maps/${MAP_STYLE_ID}/style.json?key=${MAPTILER_KEY}`;
 
 const DANCE_STYLES = ["Bachata", "Salsa", "Kizomba", "West Coast Swing", "Zouk", "Tango", "Autre"];
 const DEPARTMENTS = [
@@ -1035,6 +1049,34 @@ function eventQueryString(ev) {
   return ev.place + (deptName ? ', ' + deptName : '') + ', France';
 }
 
+function pinIconHtml(size) {
+  const h = Math.round(size * 1.3);
+  return `<svg width="${size}" height="${h}" viewBox="0 0 24 32" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 0 4px #ff2fa8) drop-shadow(0 0 10px #ff2fa8) drop-shadow(0 0 16px #2fd9ff);">
+    <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0z" fill="#ff2fa8"/>
+    <circle cx="12" cy="12" r="6" fill="#060608"/>
+    <circle cx="12" cy="12" r="2.8" fill="#2fd9ff"/>
+  </svg>`;
+}
+
+function pinElement(size) {
+  const wrap = document.createElement('div');
+  wrap.innerHTML = pinIconHtml(size);
+  wrap.style.cursor = 'pointer';
+  return wrap;
+}
+
+function circleGeoJSON(lat, lng, radiusKm, points) {
+  points = points || 64;
+  const coords = [];
+  const distanceX = radiusKm / (111.320 * Math.cos(lat * Math.PI / 180));
+  const distanceY = radiusKm / 110.574;
+  for (let i = 0; i <= points; i++) {
+    const theta = (i / points) * (2 * Math.PI);
+    coords.push([lng + distanceX * Math.cos(theta), lat + distanceY * Math.sin(theta)]);
+  }
+  return { type: 'Feature', geometry: { type: 'Polygon', coordinates: [coords] } };
+}
+
 async function initEventMap(container, ev) {
   if (!ev.place) { container.remove(); return; }
   container.innerHTML = '<div class="event-map-loading">Localisation…</div>';
@@ -1049,18 +1091,14 @@ async function initEventMap(container, ev) {
     if (!coords) throw new Error('no-result');
 
     container.innerHTML = '';
-    const map = L.map(container, { zoomControl: false, attributionControl: true, dragging: true, scrollWheelZoom: false })
-      .setView([coords.lat, coords.lng], 14);
+    const map = new maplibregl.Map({
+      container, style: MAP_STYLE_URL, center: [coords.lng, coords.lat], zoom: 14,
+      attributionControl: true, scrollZoom: false, dragRotate: false
+    });
+    map.addControl(new maplibregl.NavigationControl({showCompass: false}), 'top-right');
+    new maplibregl.Marker({element: pinElement(30), anchor: 'bottom'}).setLngLat([coords.lng, coords.lat]).addTo(map);
 
-    L.tileLayer(`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`, {
-      attribution: '© MapTiler © OpenStreetMap contributors',
-      maxZoom: 19
-    }).addTo(map);
-
-    const neonIcon = L.divIcon({ className: 'neon-marker', html: '<div class="neon-dot"></div>', iconSize: [16, 16], iconAnchor: [8, 8] });
-    L.marker([coords.lat, coords.lng], { icon: neonIcon }).addTo(map);
-
-    setTimeout(() => map.invalidateSize(), 50);
+    setTimeout(() => map.resize(), 50);
   } catch (e) {
     container.innerHTML = '<div class="event-map-loading">Carte indisponible</div>';
   }
@@ -1072,10 +1110,11 @@ function MapFullScreen() {
   const controls = el('div', {class: 'map-floating-controls'});
   controls.appendChild(el('div', {class: 'map-floating-topbar'}, [
     el('div', {class: 'brand', text: 'PULSE', style: 'margin-bottom:0;'}),
-    el('span', {class: 'role-pill', text: '📋 Liste', style: 'cursor:pointer;', onclick: () => { state.viewMode = 'list'; render(); }})
+    el('span', {class: 'map-nav-btn', text: '📋 Liste', onclick: () => { state.viewMode = 'list'; render(); }})
   ]));
 
   const searchPanel = el('div', {class: 'map-search-panel'});
+  searchPanel.appendChild(el('div', {class: 'map-search-title', text: 'Chercher une zone'}));
   if (state.mapSearchError) searchPanel.appendChild(el('div', {class: 'error-msg', style: 'margin-bottom:8px;', text: state.mapSearchError}));
 
   const cityInput = el('input', {placeholder: 'Ville (ex. Avignon)', value: state.mapSearchCity, style: 'margin-bottom:0;'});
@@ -1151,61 +1190,55 @@ async function renderFranceMap(container) {
 
   if (!container.isConnected) return;
   container.innerHTML = '';
-  const map = L.map(container, { zoomControl: true, attributionControl: true }).setView([46.6, 2.3], 6);
-
-  L.tileLayer(`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`, {
-    attribution: '© MapTiler © OpenStreetMap contributors',
-    maxZoom: 19
-  }).addTo(map);
-
-  if (state.mapSearchCenter) {
-    L.circle([state.mapSearchCenter.lat, state.mapSearchCenter.lng], {
-      radius: state.mapSearchRadius * 1000, color: '#2fd9ff', weight: 1, fillColor: '#2fd9ff', fillOpacity: 0.06
-    }).addTo(map);
-  }
+  const map = new maplibregl.Map({
+    container, style: MAP_STYLE_URL, center: [2.3, 46.6], zoom: 6, attributionControl: true
+  });
+  map.addControl(new maplibregl.NavigationControl({showCompass: false}), 'top-right');
 
   function markerSizeFor(ev) {
     const n = (ev.attendees || []).length;
-    return Math.min(46, 16 + n * 3);
+    return Math.min(58, 26 + n * 3);
   }
 
-  const markers = [];
-  events.forEach(ev => {
-    const size = markerSizeFor(ev);
-    const neonIcon = L.divIcon({
-      className: 'neon-marker',
-      html: `<div class="neon-dot" style="width:${size}px;height:${size}px;"></div>`,
-      iconSize: [size, size], iconAnchor: [size / 2, size / 2]
-    });
-    const popupContent = el('div', {style: 'min-width:170px;'}, [
-      el('div', {style: 'font-family:Orbitron,sans-serif;font-size:11px;color:#2fd9ff;margin-bottom:4px;letter-spacing:0.05em;', text: formatEventDate(ev.dateISO) + ' · ' + ev.time}),
-      el('div', {style: 'font-weight:700;margin-bottom:4px;', text: ev.title}),
-      el('div', {style: 'font-size:12px;color:rgba(245,243,248,0.6);margin-bottom:8px;', text: ev.place + ' · ' + (ev.attendees || []).length + ' inscrit·e·s'}),
-      el('span', {style: 'color:#2fd9ff;font-weight:700;cursor:pointer;font-size:13px;', text: 'Voir la soirée →', onclick: () => { state.currentEventId = ev.id; state.screen = 'detail'; render(); }})
-    ]);
-    markers.push(L.marker([ev.lat, ev.lng], {icon: neonIcon}).addTo(map).bindPopup(popupContent));
-  });
-
-  if (markers.length === 0) {
-    const emptyCtrl = L.control({position: 'topleft'});
-    emptyCtrl.onAdd = function () {
-      const d = L.DomUtil.create('div');
-      d.style.cssText = 'background:rgba(6,6,8,0.85); color:rgba(245,243,248,0.6); padding:8px 12px; border-radius:6px; font-size:13px; margin:8px; font-weight:600;';
-      d.textContent = state.mapSearchCenter ? 'Aucune soirée dans ce rayon.' : 'Aucune soirée à afficher.';
-      return d;
-    };
-    emptyCtrl.addTo(map);
-  }
-
-  // La caméra "vole" en douceur vers la zone recherchée (ou vers l'ensemble des soirées)
-  setTimeout(() => {
-    map.invalidateSize();
+  map.on('load', () => {
     if (state.mapSearchCenter) {
-      map.flyTo([state.mapSearchCenter.lat, state.mapSearchCenter.lng], 11, { duration: 1.5 });
-    } else if (markers.length) {
-      map.flyToBounds(L.featureGroup(markers).getBounds().pad(0.3), { maxZoom: 13, duration: 1.5 });
+      map.addSource('search-radius', { type: 'geojson', data: circleGeoJSON(state.mapSearchCenter.lat, state.mapSearchCenter.lng, state.mapSearchRadius) });
+      map.addLayer({ id: 'search-radius-fill', type: 'fill', source: 'search-radius', paint: { 'fill-color': '#2fd9ff', 'fill-opacity': 0.06 } });
+      map.addLayer({ id: 'search-radius-line', type: 'line', source: 'search-radius', paint: { 'line-color': '#2fd9ff', 'line-width': 1 } });
     }
-  }, 60);
+
+    const markerCoords = [];
+    events.forEach(ev => {
+      const size = markerSizeFor(ev);
+      const popupContent = el('div', {style: 'min-width:170px;'}, [
+        el('div', {style: 'font-family:Orbitron,sans-serif;font-size:11px;color:#2fd9ff;margin-bottom:4px;letter-spacing:0.05em;', text: formatEventDate(ev.dateISO) + ' · ' + ev.time}),
+        el('div', {style: 'font-weight:700;margin-bottom:4px;', text: ev.title}),
+        el('div', {style: 'font-size:12px;color:rgba(245,243,248,0.6);margin-bottom:8px;', text: ev.place + ' · ' + (ev.attendees || []).length + ' inscrit·e·s'}),
+        el('span', {style: 'color:#2fd9ff;font-weight:700;cursor:pointer;font-size:13px;', text: 'Voir la soirée →', onclick: () => { state.currentEventId = ev.id; state.screen = 'detail'; render(); }})
+      ]);
+      const popup = new maplibregl.Popup({offset: Math.round(size * 1.3), closeButton: true}).setDOMContent(popupContent);
+      new maplibregl.Marker({element: pinElement(size), anchor: 'bottom'}).setLngLat([ev.lng, ev.lat]).setPopup(popup).addTo(map);
+      markerCoords.push([ev.lng, ev.lat]);
+    });
+
+    if (markerCoords.length === 0) {
+      const emptyEl = document.createElement('div');
+      emptyEl.textContent = state.mapSearchCenter ? 'Aucune soirée dans ce rayon.' : 'Aucune soirée à afficher.';
+      emptyEl.style.cssText = 'position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:5; background:rgba(6,6,8,0.85); color:rgba(245,243,248,0.75); padding:10px 16px; border-radius:8px; font-size:13px; font-weight:600; border:1px solid var(--line); pointer-events:none;';
+      container.appendChild(emptyEl);
+    }
+
+    // La caméra "vole" en douceur vers la zone recherchée (ou vers l'ensemble des soirées)
+    setTimeout(() => {
+      map.resize();
+      if (state.mapSearchCenter) {
+        map.flyTo({ center: [state.mapSearchCenter.lng, state.mapSearchCenter.lat], zoom: 11, duration: 1500 });
+      } else if (markerCoords.length) {
+        const lngs = markerCoords.map(c => c[0]), lats = markerCoords.map(c => c[1]);
+        map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 60, maxZoom: 13, duration: 1500 });
+      }
+    }, 60);
+  });
 }
 
 // ---------- DETAIL ----------
