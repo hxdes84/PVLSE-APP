@@ -760,6 +760,15 @@ function ProfileScreen() {
   nameInput.value = state.profile.name;
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Prénom'}), nameInput]));
 
+  const instaInput = el('input', {placeholder: '@ton_pseudo', maxlength: '40'});
+  instaInput.value = state.profile.instagram || '';
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Instagram (optionnel)'}), instaInput]));
+
+  const fbInput = el('input', {placeholder: 'facebook.com/ton.profil', maxlength: '150'});
+  fbInput.value = state.profile.facebook || '';
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Facebook (optionnel)'}), fbInput]));
+  screen.appendChild(el('p', {class: 'sub', style: 'font-size:13px; margin-top:-8px; margin-bottom:20px;', text: "Visible par les autres danseurs sur ton profil. Laisse vide si tu ne veux rien partager."}));
+
   screen.appendChild(el('div', {class: 'field'}, [
     el('label', {text: 'Rôle'}),
     el('div', {text: state.profile.role === 'dancer' ? 'Danseur·se' : 'Organisateur·rice', style: 'padding:6px 0; color:var(--muted); font-weight:600;'})
@@ -795,8 +804,10 @@ function ProfileScreen() {
       const name = nameInput.value.trim();
       if (!name) return;
       btn.disabled = true; btn.textContent = 'Enregistrement…';
-      const updated = { ...state.profile, name, danceStyles: localStyles, isCreator: localIsCreator };
-      await updateDoc(doc(db, 'users', state.user.uid), { name, danceStyles: localStyles, isCreator: localIsCreator });
+      const instagram = instaInput.value.trim().replace(/^@/, '');
+      const facebook = fbInput.value.trim();
+      const updated = { ...state.profile, name, danceStyles: localStyles, isCreator: localIsCreator, instagram, facebook };
+      await updateDoc(doc(db, 'users', state.user.uid), { name, danceStyles: localStyles, isCreator: localIsCreator, instagram, facebook });
       state.profile = updated;
       state.screen = 'feed';
       render();
@@ -830,6 +841,23 @@ function OtherProfileScreen() {
     const wrap = el('div', {class: 'style-wrap'});
     p.danceStyles.forEach(s => wrap.appendChild(el('span', {class: 'style-chip active', text: s})));
     screen.appendChild(wrap);
+  }
+  if (p.instagram || p.facebook) {
+    const socialRow = el('div', {style: 'display:flex; gap:10px; margin-top:16px; margin-bottom:20px; flex-wrap:wrap;'});
+    if (p.instagram) {
+      socialRow.appendChild(el('span', {
+        class: 'style-chip', text: '📷 @' + p.instagram, style: 'border-color:var(--pink-dim); color:var(--pink);',
+        onclick: () => window.open('https://instagram.com/' + p.instagram, '_blank')
+      }));
+    }
+    if (p.facebook) {
+      const fbUrl = p.facebook.startsWith('http') ? p.facebook : 'https://' + p.facebook;
+      socialRow.appendChild(el('span', {
+        class: 'style-chip', text: '👤 Facebook', style: 'border-color:var(--blue-dim); color:var(--blue);',
+        onclick: () => window.open(fbUrl, '_blank')
+      }));
+    }
+    screen.appendChild(socialRow);
   }
   if (p.role === 'organizer') {
     const others = state.events.filter(ev => ev.organizerUid === state.viewedProfileUid && ev.status !== 'cancelled' && !isEventHidden(ev) && ev.id !== state.currentEventId);
