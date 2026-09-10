@@ -268,7 +268,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, setPersistence, browserLocalPersistence, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -282,6 +282,7 @@ const firebaseConfig = {
 
 const fbApp = initializeApp(firebaseConfig);
 const auth = getAuth(fbApp);
+setPersistence(auth, browserLocalPersistence).catch(() => {});
 const db = getFirestore(fbApp);
 
 const MAPTILER_KEY = "x3s9Whky7gIYlhbSB6MT";
@@ -438,9 +439,12 @@ onAuthStateChanged(auth, async (user) => {
 
 let historyInitialized = false;
 let suppressHistoryPush = false;
+const AUTH_ONLY_SCREENS = ['welcome', 'login', 'signup', 'reset-password', 'complete-profile'];
 
 function syncHistory() {
   if (suppressHistoryPush) { suppressHistoryPush = false; return; }
+  // Une fois connecté, les écrans de connexion/inscription ne doivent plus jamais entrer dans l'historique
+  if (state.user && AUTH_ONLY_SCREENS.includes(state.screen)) return;
   const entry = { screen: state.screen, currentEventId: state.currentEventId };
   if (!historyInitialized) {
     history.replaceState(entry, '');
@@ -455,9 +459,20 @@ function syncHistory() {
 
 window.addEventListener('popstate', (e) => {
   suppressHistoryPush = true;
-  if (e.state && e.state.screen) {
-    state.screen = e.state.screen;
-    state.currentEventId = e.state.currentEventId || null;
+  const targetScreen = e.state && e.state.screen;
+  const targetEventId = e.state && e.state.currentEventId;
+  // Si on est connecté et que le retour tenterait de nous ramener sur un écran de connexion,
+  // on "soigne" cette entrée en la remplaçant par le flux principal.
+  if (state.user && targetScreen && AUTH_ONLY_SCREENS.includes(targetScreen)) {
+    state.screen = 'feed';
+    state.currentEventId = null;
+    history.replaceState({screen: 'feed', currentEventId: null}, '');
+    render();
+    return;
+  }
+  if (targetScreen) {
+    state.screen = targetScreen;
+    state.currentEventId = targetEventId || null;
   } else {
     state.screen = state.user ? 'feed' : 'welcome';
   }
