@@ -474,7 +474,14 @@ function watchEvents() {
   const q = query(collection(db, 'events'), orderBy('createdAt', 'desc'));
   unsubEvents = onSnapshot(q, (snap) => {
     state.events = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    render();
+    if (state.screen === 'admin' && adminRefs.refreshEvents) {
+      adminRefs.refreshEvents();
+      if (adminRefs.refreshStats) { state.adminStats = null; loadAdminStats(); }
+    } else if (state.screen === 'feed' && state.viewMode === 'list' && document.getElementById('feed-list')) {
+      renderFeedListOnly();
+    } else {
+      render();
+    }
   });
 }
 
@@ -1155,21 +1162,25 @@ function FeedScreen() {
   screen.appendChild(searchInput);
 
   const filterRow = el('div', {class: 'filter-row'});
-  filterRow.appendChild(el('span', {
-    class: 'sort-chip' + (state.showFavoritesOnly ? ' active' : ''), text: '❤ Favoris',
-    onclick: () => { state.showFavoritesOnly = !state.showFavoritesOnly; render(); }
-  }));
-  DANCE_STYLES.forEach(style => {
+  function refreshFilterRow() {
+    filterRow.innerHTML = '';
     filterRow.appendChild(el('span', {
-      class: 'sort-chip' + (state.danceFilter === style ? ' active' : ''), text: style,
-      onclick: () => { state.danceFilter = state.danceFilter === style ? '' : style; render(); }
+      class: 'sort-chip' + (state.showFavoritesOnly ? ' active' : ''), text: '❤ Favoris',
+      onclick: () => { state.showFavoritesOnly = !state.showFavoritesOnly; refreshFilterRow(); renderFeedListOnly(); }
     }));
-  });
+    DANCE_STYLES.forEach(style => {
+      filterRow.appendChild(el('span', {
+        class: 'sort-chip' + (state.danceFilter === style ? ' active' : ''), text: style,
+        onclick: () => { state.danceFilter = state.danceFilter === style ? '' : style; refreshFilterRow(); renderFeedListOnly(); }
+      }));
+    });
+  }
+  refreshFilterRow();
   screen.appendChild(filterRow);
 
   const allDepts = [...new Set(state.events.map(ev => ev.dept).filter(Boolean))].sort();
   if (allDepts.length > 0) {
-    const deptSelect = el('select', { onchange: (e) => { state.deptFilter = e.target.value; render(); } });
+    const deptSelect = el('select', { onchange: (e) => { state.deptFilter = e.target.value; renderFeedListOnly(); } });
     deptSelect.appendChild(el('option', {text: 'Tous les départements', value: ''}));
     allDepts.forEach(d => {
       const opt = el('option', {text: d, value: d});
@@ -1180,12 +1191,16 @@ function FeedScreen() {
   }
 
   const sortRow = el('div', {class: 'sort-row'});
-  [['date','Date'],['popular','Popularité'],['price','Prix']].forEach(([key,label]) => {
-    sortRow.appendChild(el('span', {
-      class: 'sort-chip' + (state.sortBy === key ? ' active' : ''), text: label,
-      onclick: () => { state.sortBy = key; render(); }
-    }));
-  });
+  function refreshSortRow() {
+    sortRow.innerHTML = '';
+    [['date','Date'],['popular','Popularité'],['price','Prix']].forEach(([key,label]) => {
+      sortRow.appendChild(el('span', {
+        class: 'sort-chip' + (state.sortBy === key ? ' active' : ''), text: label,
+        onclick: () => { state.sortBy = key; refreshSortRow(); renderFeedListOnly(); }
+      }));
+    });
+  }
+  refreshSortRow();
   screen.appendChild(sortRow);
 
   const list = el('div', {id: 'feed-list'});
@@ -1242,7 +1257,7 @@ function buildFeedList() {
           const favs = state.profile.favorites || [];
           const newFavs = isFav ? favs.filter(id => id !== ev.id) : [...favs, ev.id];
           state.profile.favorites = newFavs;
-          render();
+          renderFeedListOnly();
           try { await updateDoc(doc(db, 'users', state.user.uid), { favorites: newFavs }); } catch(err) {}
         }
       }),
@@ -1554,24 +1569,27 @@ function DetailScreen() {
   screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Organisé par'}), organizerNameSpan]));
   screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Département'}), el('div', {text: ev.dept || '—'})]));
   screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Prix'}), el('div', {text: ev.price ? ev.price + ' €' : 'Gratuit'})]));
-  screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Participants'}), el('div', {text: attendees.length + ' inscrit·e·s'})]));
+  const participantsRow = el('div', {text: attendees.length + ' inscrit·e·s'});
+  screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Participants'}), participantsRow]));
   screen.appendChild(el('div', {class: 'detail-desc', text: ev.desc}));
 
   const mapContainer = el('div', {class: 'event-map'}, [el('div', {class: 'event-map-loading', text: 'Localisation…'})]);
   screen.appendChild(mapContainer);
   setTimeout(() => initEventMap(mapContainer, ev), 0);
 
-  const actionRow = el('div', {style: 'display:flex; gap:10px; margin-bottom:16px;'});
-  actionRow.appendChild(el('button', {
+  const favBtn = el('button', {
     class: 'secondary', text: isFav ? '♥ Favori' : '♡ Ajouter aux favoris', style: 'margin-top:0;',
     onclick: async () => {
       const favs = state.profile.favorites || [];
-      const newFavs = isFav ? favs.filter(id => id !== ev.id) : [...favs, ev.id];
+      const nowFav = favs.includes(ev.id);
+      const newFavs = nowFav ? favs.filter(id => id !== ev.id) : [...favs, ev.id];
       state.profile.favorites = newFavs;
-      render();
+      favBtn.textContent = nowFav ? '♡ Ajouter aux favoris' : '♥ Favori';
       try { await updateDoc(doc(db, 'users', state.user.uid), { favorites: newFavs }); } catch(err) {}
     }
-  }));
+  });
+  const actionRow = el('div', {style: 'display:flex; gap:10px; margin-bottom:16px;'});
+  actionRow.appendChild(favBtn);
   actionRow.appendChild(el('button', {
     class: 'secondary', text: '↗ Partager', style: 'margin-top:0;',
     onclick: async () => {
@@ -1592,22 +1610,29 @@ function DetailScreen() {
 
   const attList = el('div', {class: 'attendee-list'});
   attList.appendChild(el('h4', {text: 'Qui vient'}));
-  if (attendees.length === 0) {
-    attList.appendChild(el('div', {class: 'empty', text: "Personne pour l'instant."}));
-  } else {
-    attendees.forEach(a => attList.appendChild(el('span', {
-      class: 'attendee-chip', text: a.name,
-      onclick: async () => {
-        try {
-          const snap = await getDoc(doc(db, 'users', a.uid));
-          state.viewedProfile = snap.exists() ? snap.data() : null;
-          state.viewedProfileUid = a.uid;
-        } catch(e) { state.viewedProfile = null; }
-        state.screen = 'other-profile';
-        render();
-      }
-    })));
+  const attListItems = el('div', {});
+  attList.appendChild(attListItems);
+  function refreshAttendees(currentAttendees) {
+    attListItems.innerHTML = '';
+    if (currentAttendees.length === 0) {
+      attListItems.appendChild(el('div', {class: 'empty', text: "Personne pour l'instant."}));
+    } else {
+      currentAttendees.forEach(a => attListItems.appendChild(el('span', {
+        class: 'attendee-chip', text: a.name,
+        onclick: async () => {
+          try {
+            const snap = await getDoc(doc(db, 'users', a.uid));
+            state.viewedProfile = snap.exists() ? snap.data() : null;
+            state.viewedProfileUid = a.uid;
+          } catch(e) { state.viewedProfile = null; }
+          state.screen = 'other-profile';
+          render();
+        }
+      })));
+    }
+    participantsRow.textContent = currentAttendees.length + ' inscrit·e·s';
   }
+  refreshAttendees(attendees);
   screen.appendChild(attList);
 
   if (state.user.uid === ev.organizerUid) {
@@ -1642,18 +1667,23 @@ function DetailScreen() {
   }
 
   if (state.profile.role === 'dancer' && ev.status !== 'cancelled') {
-    screen.appendChild(el('button', {
-      class: 'primary' + (going ? ' going' : ''),
-      text: going ? '✓ Tu y vas — annuler' : "J'y vais",
+    let currentGoing = going;
+    const rsvpBtn = el('button', {
+      class: 'primary' + (currentGoing ? ' going' : ''),
+      text: currentGoing ? '✓ Tu y vas — annuler' : "J'y vais",
       onclick: async () => {
         let newAttendees;
-        if (going) newAttendees = attendees.filter(a => a.uid !== state.user.uid);
-        else newAttendees = [...attendees, { uid: state.user.uid, name: state.profile.name }];
+        if (currentGoing) newAttendees = ev.attendees.filter(a => a.uid !== state.user.uid);
+        else newAttendees = [...(ev.attendees || []), { uid: state.user.uid, name: state.profile.name }];
         ev.attendees = newAttendees;
-        render();
+        currentGoing = !currentGoing;
+        rsvpBtn.className = 'primary' + (currentGoing ? ' going' : '');
+        rsvpBtn.textContent = currentGoing ? '✓ Tu y vas — annuler' : "J'y vais";
+        refreshAttendees(newAttendees);
         try { await updateDoc(doc(db, 'events', ev.id), { attendees: newAttendees }); flashSaved(); } catch (err) { console.error('Échec RSVP', err); }
       }
-    }));
+    });
+    screen.appendChild(rsvpBtn);
   }
   if (state.user.uid !== ev.organizerUid) {
     screen.appendChild(el('button', {
