@@ -295,12 +295,21 @@
     var app = document.getElementById('app');
     if (app) app.innerHTML = '<div style="padding:24px; color:#ff2fa8; font-family:monospace; font-size:13px; white-space:pre-wrap;">Erreur (promesse) :\n' + (e.reason && (e.reason.stack || e.reason.message || e.reason)) + '</div>';
   });
+  window.__pulseModuleStarted = false;
+  setTimeout(function() {
+    if (!window.__pulseModuleStarted) {
+      var app = document.getElementById('app');
+      if (app) app.innerHTML = '<div style="padding:24px; color:#ff2fa8; font-family:monospace; font-size:13px; white-space:pre-wrap; line-height:1.6;">Le script principal ne s\'est jamais lancé après 6 secondes.\n\nCause la plus probable : un des fichiers Firebase (gstatic.com) n\'a pas pu être téléchargé.\n\nÀ essayer :\n1. Vérifie ta connexion internet (essaie de basculer WiFi <-> données mobiles)\n2. Désactive temporairement un éventuel bloqueur de pub/traceur pour ce site\n3. Recharge la page\n\nSi ça persiste après ces essais, dis-le-moi.</div>';
+    }
+  }, 6000);
 </script>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, setPersistence, browserLocalPersistence, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, getDocs, getCountFromServer, collection, addDoc, onSnapshot, updateDoc, deleteDoc, query, where, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+window.__pulseModuleStarted = true;
 
 const firebaseConfig = {
   apiKey: "AIzaSyC4kEGp0Z-u1fPWkbprJLOqprqyveDec0E",
@@ -1909,23 +1918,4 @@ function AdminScreen() {
       ]);
       if (!u.isCreator) {
         row.appendChild(el('button', {
-          class: 'secondary' + (banned ? '' : ' danger-outline'), text: banned ? 'Débloquer' : 'Bloquer', style: 'margin-top:10px;',
-          onclick: async (e) => {
-            e.target.disabled = true;
-            try {
-              await updateDoc(doc(db, 'users', u.uid), { banned: !banned });
-              u.banned = !banned;
-              state.adminStats = null;
-              render();
-            } catch (err) { e.target.disabled = false; }
-          }
-        }));
-      }
-      screen.appendChild(row);
-    });
-
-    if (bucket.items.length === 0 && !state.adminLoading && !bucket.error) {
-      screen.appendChild(el('div', {class: 'empty', text: 'Aucun résultat.', style: 'padding:14px 0;'}));
-    }
-    if (bucket.hasMore && !bucket.search.trim()) {
-      screen.appendChild(el('but
+          class: 'secondary' + (
