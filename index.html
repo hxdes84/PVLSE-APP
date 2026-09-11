@@ -466,30 +466,38 @@ const deepLinkEventId = urlParams.get('event');
 
 onAuthStateChanged(auth, async (user) => {
   state.user = user;
-  if (user) {
-    const snap = await getDoc(doc(db, 'users', user.uid));
-    state.profile = snap.exists() ? snap.data() : null;
-    if (state.profile && state.profile.banned === true) {
-      await signOut(auth);
-      state.authError = 'Ce compte a été suspendu.';
-      state.screen = 'welcome';
-      state.user = null;
-      state.profile = null;
-      state.ready = true;
-      render();
-      return;
-    }
-    watchEvents();
-    if (!state.profile) {
-      state.screen = 'complete-profile';
-    } else if (deepLinkEventId) {
-      state.currentEventId = deepLinkEventId;
-      state.screen = 'detail';
+  try {
+    if (user) {
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      state.profile = snap.exists() ? snap.data() : null;
+      if (state.profile && state.profile.banned === true) {
+        await signOut(auth);
+        state.authError = 'Ce compte a été suspendu.';
+        state.screen = 'welcome';
+        state.user = null;
+        state.profile = null;
+        state.ready = true;
+        render();
+        return;
+      }
+      watchEvents();
+      if (!state.profile) {
+        state.screen = 'complete-profile';
+      } else if (deepLinkEventId) {
+        state.currentEventId = deepLinkEventId;
+        state.screen = 'detail';
+      } else {
+        state.screen = 'feed';
+      }
     } else {
-      state.screen = 'feed';
+      state.screen = 'welcome';
+      state.profile = null;
     }
-  } else {
+  } catch (e) {
+    console.error('Erreur au chargement du profil', e);
     state.screen = 'welcome';
+    state.authError = "Erreur de chargement (" + (e.code || e.message || 'inconnue') + "). Réessaie de te connecter.";
+    state.user = null;
     state.profile = null;
   }
   state.ready = true;
@@ -1924,5 +1932,4 @@ function AdminScreen() {
   renderUserRoleSection('organizer', 'Organisateur·rice·s', 'adminOrgs');
 
   // --- Toutes les soirées (modération) ---
-  screen.appendChild(el('h4', {text: 'Toutes les soirées', style: 'font-family:Orbitron,sans-serif; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin:26px 0 12px;'}));
-  const allEvents = state.events.slice().sort((a, b) => ((b.dateISO || '') + (b.time || '')).localeCompare((a.dateISO || '') + (a.time || ''))
+  screen.appendChi
