@@ -1,0 +1,2179 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Pulse</title>
+<meta name="theme-color" content="#060608">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pulse">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&family=Rajdhani:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #060608;
+    --paper: #f5f3f8;
+    --pink: #ff2fa8;
+    --pink-dim: #ff2fa855;
+    --blue: #2fd9ff;
+    --blue-dim: #2fd9ff55;
+    --line: rgba(245,243,248,0.12);
+    --muted: rgba(245,243,248,0.55);
+    --card-bg: transparent;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--paper); font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+  body { display: flex; justify-content: center; }
+  #app {
+    width: 100%; max-width: 460px; min-height: 100vh;
+    background:
+      radial-gradient(circle at 15% 0%, rgba(255,47,168,0.16) 0%, transparent 45%),
+      radial-gradient(circle at 90% 15%, rgba(47,217,255,0.14) 0%, transparent 40%),
+      var(--bg);
+    display: flex; flex-direction: column; position: relative; transition: background 0.3s ease, color 0.3s ease;
+  }
+  .screen { padding: max(28px, env(safe-area-inset-top)) 22px calc(100px + env(safe-area-inset-bottom)); flex: 1; position: relative; animation: screenIn 0.45s ease; overflow-x: hidden; }
+  @keyframes screenIn {
+    0% { opacity: 0; transform: translateY(6px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  .screen::before {
+    content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--blue), var(--pink), transparent);
+    animation: sweep 0.6s ease-out forwards; box-shadow: 0 0 12px rgba(47,217,255,0.6);
+  }
+  @keyframes sweep { 0% { left: -100%; } 100% { left: 100%; } }
+
+  .brand {
+    font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.22em;
+    background: linear-gradient(90deg, var(--pink), var(--blue));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    margin-bottom: 6px;
+  }
+  h1 { font-family: 'Orbitron', sans-serif; font-weight: 600; font-size: 25px; line-height: 1.3; margin-bottom: 10px; letter-spacing: 0.01em; }
+  .sub { color: var(--muted); font-size: 16px; line-height: 1.5; margin-bottom: 30px; font-weight: 500; }
+
+  .role-grid { display: flex; flex-direction: column; gap: 14px; }
+  .role-card {
+    border: 1px solid var(--blue-dim); border-radius: 6px; padding: 22px 20px;
+    background: rgba(47,217,255,0.04); cursor: pointer;
+    box-shadow: 0 0 0 rgba(47,217,255,0); transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .role-card:active { box-shadow: 0 0 22px rgba(47,217,255,0.25); border-color: var(--blue); }
+  .role-card h3 { font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 600; margin-bottom: 6px; letter-spacing: 0.02em; }
+  .role-card p { color: var(--muted); font-size: 15px; font-weight: 500; }
+
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
+  .topbar .brand { margin-bottom: 0; }
+  .topbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .role-pill { font-size: 12px; color: var(--muted); border: 1px solid var(--line); padding: 4px 10px; border-radius: 20px; font-weight: 600; letter-spacing: 0.02em; }
+  .icon-btn { background: none; border: 1px solid var(--line); color: var(--muted); font-size: 13px; padding: 5px 11px; border-radius: 20px; cursor: pointer; font-weight: 600; }
+
+  .search-input { margin-bottom: 14px; }
+  .filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .sort-row { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .sort-chip { font-size: 13px; border: 1px solid var(--line); color: var(--muted); padding: 7px 14px; border-radius: 20px; cursor: pointer; font-weight: 600; }
+  .sort-chip.active { border-color: var(--pink); color: var(--pink); background: rgba(255,47,168,0.08); }
+
+  .event-card { border-top: 1px solid var(--line); padding: 18px 0; cursor: pointer; position: relative; background: var(--card-bg); }
+  .event-card:last-child { border-bottom: 1px solid var(--line); }
+  .event-date { font-family: 'Orbitron', sans-serif; font-size: 11px; color: var(--blue); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; text-shadow: 0 0 12px rgba(47,217,255,0.5); }
+  .event-title { font-size: 19px; font-weight: 600; margin-bottom: 4px; padding-right: 40px; }
+  .event-meta { font-size: 14px; color: var(--muted); font-weight: 500; }
+  .event-going { font-size: 13px; color: var(--pink); margin-top: 8px; text-shadow: 0 0 10px rgba(255,47,168,0.5); font-weight: 600; }
+  .event-price { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .dept-badge { font-size: 11px; color: var(--blue); font-weight: 600; border: 1px solid var(--blue-dim); padding: 2px 8px; border-radius: 12px; display: inline-block; margin-bottom: 6px; }
+  .cancelled-badge { font-size: 11px; color: var(--pink); font-weight: 700; border: 1px solid var(--pink-dim); padding: 2px 8px; border-radius: 12px; display: inline-block; margin-bottom: 6px; text-transform: uppercase; }
+
+  .fav-btn { position: absolute; top: 18px; right: 0; background: none; border: none; font-size: 22px; cursor: pointer; color: var(--line); line-height: 1; }
+  .fav-btn.active { color: var(--pink); text-shadow: 0 0 10px rgba(255,47,168,0.6); }
+
+  .fab {
+    position: fixed; bottom: 26px; left: 50%; transform: translateX(calc(-50% + 165px));
+    background: var(--pink); color: #0a0510; border: none; width: 56px; height: 56px; border-radius: 50%;
+    font-size: 28px; box-shadow: 0 0 24px rgba(255,47,168,0.55), 0 6px 20px rgba(0,0,0,0.4);
+  }
+
+  .back-btn { background: none; border: none; color: var(--muted); font-size: 15px; margin-bottom: 20px; cursor: pointer; padding: 0; font-weight: 600; }
+  .link-btn { background: none; border: none; color: var(--blue); font-size: 14px; cursor: pointer; padding: 0; font-weight: 600; text-shadow: 0 0 10px rgba(47,217,255,0.4); }
+
+  .detail-title { font-family: 'Orbitron', sans-serif; font-size: 21px; font-weight: 600; margin-bottom: 8px; }
+  .detail-row { display: flex; gap: 10px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 15px; }
+  .detail-row:last-of-type { border-bottom: 1px solid var(--line); margin-bottom: 24px; }
+  .detail-label { color: var(--muted); width: 100px; flex-shrink: 0; font-weight: 600; }
+  .detail-desc { color: var(--muted); font-size: 15px; line-height: 1.6; margin: 20px 0; font-weight: 500; }
+
+  .attendee-list { margin: 20px 0; }
+  .attendee-list h4 { font-family: 'Orbitron', sans-serif; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; font-weight: 600; }
+  .attendee-chip { display: inline-block; font-size: 13px; background: rgba(255,47,168,0.1); border: 1px solid var(--pink-dim); color: var(--paper); padding: 5px 12px; border-radius: 20px; margin: 0 6px 6px 0; font-weight: 600; cursor: pointer; }
+
+  .style-chip { display: inline-block; font-size: 13px; border: 1px solid var(--line); color: var(--muted); padding: 7px 14px; border-radius: 20px; margin: 0 8px 8px 0; cursor: pointer; font-weight: 600; transition: all 0.15s ease; }
+  .style-chip.active { border-color: var(--blue); color: var(--blue); background: rgba(47,217,255,0.08); box-shadow: 0 0 10px rgba(47,217,255,0.25); }
+  .style-wrap { display: flex; flex-wrap: wrap; margin-bottom: 20px; }
+
+  button.primary {
+    width: 100%; background: var(--pink); color: #0a0510; border: none; padding: 16px; border-radius: 6px;
+    font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 0 20px rgba(255,47,168,0.4);
+    font-family: 'Rajdhani', sans-serif; letter-spacing: 0.03em; transition: transform 0.1s ease;
+  }
+  button.primary:active { transform: scale(0.98); }
+  button.primary.going { background: transparent; border: 1px solid var(--blue); color: var(--blue); box-shadow: 0 0 14px rgba(47,217,255,0.3); }
+  button.primary:disabled { opacity: 0.5; box-shadow: none; }
+  button.secondary {
+    width: 100%; background: transparent; color: var(--muted); border: 1px solid var(--line); padding: 14px;
+    border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 10px;
+  }
+  button.danger-outline { color: var(--pink); border-color: var(--pink-dim); }
+
+  input, textarea {
+    width: 100%; background: rgba(128,128,140,0.07); border: 1px solid var(--line); color: var(--paper);
+    padding: 13px 14px; border-radius: 6px; font-size: 16px; margin-bottom: 14px; font-family: 'Rajdhani', sans-serif; font-weight: 500;
+  }
+  select {
+    width: 100%; background: rgba(128,128,140,0.07); border: 1px solid var(--line); color: var(--paper);
+    padding: 13px 14px; border-radius: 6px; font-size: 16px; margin-bottom: 14px; font-family: 'Rajdhani', sans-serif; font-weight: 500;
+  }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 12px rgba(47,217,255,0.3); }
+  input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus, input:-webkit-autofill:active,
+  input:autofill {
+    -webkit-text-fill-color: var(--paper) !important;
+    -webkit-box-shadow: 0 0 0 1000px #17171f inset !important;
+    box-shadow: 0 0 0 1000px #17171f inset !important;
+    caret-color: var(--paper);
+    transition: background-color 9999s ease-in-out 0s;
+  }
+  @keyframes onAutoFillStart { from {} to {} }
+  @keyframes onAutoFillCancel { from {} to {} }
+  input:-webkit-autofill { animation-name: onAutoFillStart; }
+  input:not(:-webkit-autofill) { animation-name: onAutoFillCancel; }
+  textarea { min-height: 90px; resize: vertical; }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .field { margin-bottom: 16px; }
+  .password-field-wrap { position: relative; margin-bottom: 14px; }
+  .password-field-wrap input { margin-bottom: 0; padding-right: 44px; }
+  .password-toggle {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    cursor: pointer; font-size: 17px; opacity: 0.7; user-select: none;
+  }
+  .error-msg { color: var(--pink); font-size: 14px; margin-bottom: 14px; font-weight: 600; }
+  .info-msg { color: var(--blue); font-size: 14px; margin-bottom: 14px; font-weight: 600; }
+
+  .empty { color: var(--muted); font-size: 15px; padding: 30px 0; text-align: center; }
+  .loading { display: flex; align-items: center; justify-content: center; min-height: 100vh; color: var(--muted); font-size: 14px; font-family: 'Orbitron', sans-serif; letter-spacing: 0.05em; }
+  .save-indicator { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--blue); opacity: 0; transition: opacity 0.3s ease; pointer-events: none; font-family: 'Orbitron', sans-serif; letter-spacing: 0.05em; text-shadow: 0 0 10px rgba(47,217,255,0.5); z-index: 50; }
+  .save-indicator.show { opacity: 1; }
+
+  .offline-banner { background: var(--pink); color: #0a0510; font-size: 13px; font-weight: 700; text-align: center; padding: 8px; }
+  .notice-banner { border: 1px solid var(--pink-dim); background: rgba(255,47,168,0.08); border-radius: 6px; padding: 14px; margin-bottom: 14px; font-size: 14px; }
+  .notice-banner .title { color: var(--pink); font-weight: 700; margin-bottom: 4px; }
+  .verify-banner { border: 1px solid var(--blue-dim); background: rgba(47,217,255,0.08); border-radius: 6px; padding: 12px 14px; margin-bottom: 16px; font-size: 13px; color: var(--muted); }
+
+  .onboard-dots { display: flex; gap: 8px; justify-content: center; margin: 24px 0; }
+  .onboard-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+  .onboard-dot.active { background: var(--pink); box-shadow: 0 0 8px rgba(255,47,168,0.6); }
+
+  .checkbox-row { display: flex; align-items: flex-start; gap: 0; margin-bottom: 20px; font-size: 14px; color: var(--muted); }
+  .checkbox-row input { width: auto; margin-right: 8px; margin-top: 3px; }
+  .checkbox-row label { text-transform: none; font-weight: 500; letter-spacing: normal; margin: 0; cursor: pointer; }
+
+  .event-map {
+    height: 210px; border-radius: 6px; overflow: hidden; margin-bottom: 16px;
+    border: 1px solid var(--blue-dim);
+    box-shadow: 0 0 18px rgba(47,217,255,0.22), inset 0 0 30px rgba(6,6,8,0.4);
+    background: #0a0a10; position: relative;
+  }
+  .event-map-loading { color: var(--muted); font-size: 13px; font-family: 'Orbitron', sans-serif; letter-spacing: 0.05em; display: flex; align-items: center; justify-content: center; height: 100%; }
+  .neon-marker { background: transparent; border: none; }
+  .maplibregl-ctrl-attrib {
+    background: rgba(6,6,8,0.75) !important; color: var(--muted) !important; font-size: 9px !important;
+  }
+  .maplibregl-ctrl-attrib a { color: var(--blue) !important; }
+  .maplibregl-ctrl-attrib-button { filter: invert(1); }
+  .maplibregl-ctrl-group {
+    background: rgba(6,6,8,0.85) !important; border: 1px solid var(--blue-dim) !important; box-shadow: 0 0 10px rgba(47,217,255,0.2) !important;
+  }
+  .maplibregl-ctrl-group button { background: transparent !important; }
+  .maplibregl-ctrl-icon { filter: invert(85%) sepia(50%) saturate(1000%) hue-rotate(150deg) brightness(1.1); }
+  .maplibregl-popup-content {
+    background: #0d0d14 !important; color: var(--paper) !important; border: 1px solid var(--blue-dim) !important;
+    border-radius: 6px !important; box-shadow: 0 0 16px rgba(47,217,255,0.25) !important; padding: 12px !important;
+  }
+  .maplibregl-popup-tip { border-top-color: #0d0d14 !important; border-bottom-color: #0d0d14 !important; }
+  .maplibregl-popup-close-button { color: var(--muted) !important; font-size: 16px !important; }
+
+  .view-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
+  .view-toggle-btn {
+    flex: 1; text-align: center; padding: 10px; border-radius: 6px; border: 1px solid var(--blue-dim);
+    color: var(--blue); font-weight: 700; font-size: 14px; cursor: pointer; font-family: 'Rajdhani', sans-serif;
+    background: rgba(47,217,255,0.05);
+  }
+  .view-toggle-btn.active { border-color: var(--pink); color: var(--pink); background: rgba(255,47,168,0.08); box-shadow: 0 0 10px rgba(255,47,168,0.2); }
+
+  .geo-search-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .geo-search-row input { margin-bottom: 0; flex: 2; }
+  .geo-search-row select { margin-bottom: 0; flex: 1; }
+  .geo-search-btn {
+    background: var(--blue); color: #0a0510; border: none; border-radius: 6px; padding: 0 16px;
+    font-weight: 700; font-size: 14px; cursor: pointer; box-shadow: 0 0 14px rgba(47,217,255,0.35);
+  }
+
+  .map-fullscreen { position: absolute; inset: 0; z-index: 10; background: var(--bg); display: flex; flex-direction: column; overflow: hidden; }
+
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+  .stat-card {
+    border: 1px solid var(--blue-dim); border-radius: 8px; padding: 14px;
+    background: rgba(47,217,255,0.04); box-shadow: 0 0 10px rgba(47,217,255,0.1);
+  }
+  .stat-card.pink { border-color: var(--pink-dim); background: rgba(255,47,168,0.04); box-shadow: 0 0 10px rgba(255,47,168,0.1); }
+  .stat-value {
+    font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: 700; line-height: 1.1;
+    color: var(--blue); text-shadow: 0 0 12px rgba(47,217,255,0.5);
+  }
+  .stat-card.pink .stat-value { color: var(--pink); text-shadow: 0 0 12px rgba(255,47,168,0.5); }
+  .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+
+  .notif-badge {
+    position: absolute; top: -6px; right: -6px; background: var(--pink); color: #0a0510;
+    font-size: 10px; font-weight: 800; min-width: 16px; height: 16px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; padding: 0 4px;
+    box-shadow: 0 0 8px rgba(255,47,168,0.7); line-height: 1;
+  }
+  .badge-anchor { position: relative; display: inline-flex; }
+  .map-canvas { flex: 1; position: relative; }
+  .map-floating-controls {
+    position: absolute; top: max(14px, env(safe-area-inset-top)); left: 14px; right: 14px; z-index: 620;
+    display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+  }
+  .map-floating-controls > * { pointer-events: auto; }
+  .map-floating-topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(6,6,8,0.75); backdrop-filter: blur(8px); padding: 10px 14px;
+    border-radius: 10px; border: 1px solid var(--pink-dim); box-shadow: 0 0 14px rgba(255,47,168,0.18);
+  }
+  .map-nav-btn {
+    font-size: 13px; font-weight: 700; padding: 6px 14px; border-radius: 20px; cursor: pointer;
+    color: var(--blue); border: 1px solid var(--blue-dim); background: rgba(47,217,255,0.08);
+    box-shadow: 0 0 10px rgba(47,217,255,0.25); text-shadow: 0 0 8px rgba(47,217,255,0.5);
+    letter-spacing: 0.02em;
+  }
+  .map-search-panel {
+    background: rgba(6,6,8,0.78); backdrop-filter: blur(8px); padding: 12px;
+    border-radius: 10px; border: 1px solid var(--blue-dim); box-shadow: 0 0 16px rgba(47,217,255,0.2), 0 0 24px rgba(255,47,168,0.08);
+  }
+  .map-search-panel .geo-search-row { margin-bottom: 0; }
+  .map-search-title {
+    font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; margin-bottom: 8px;
+    background: linear-gradient(90deg, var(--pink), var(--blue));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .map-floating-label {
+    background: rgba(6,6,8,0.78); backdrop-filter: blur(8px); padding: 8px 12px;
+    border-radius: 10px; font-size: 13px; color: var(--paper); font-weight: 600;
+    border: 1px solid var(--pink-dim); box-shadow: 0 0 10px rgba(255,47,168,0.2);
+  }
+  .map-floating-label .pin-emoji { color: var(--blue); }
+</style>
+</head>
+<body>
+<div id="app"><div class="loading">PULSE</div></div>
+<script>
+  window.addEventListener('error', function(e) {
+    var app = document.getElementById('app');
+    if (app) app.innerHTML = '<div style="padding:24px; color:#ff2fa8; font-family:monospace; font-size:13px; white-space:pre-wrap;">Erreur au chargement :\n' + (e.message || e.error) + '\n\nFichier : ' + (e.filename || '?') + ':' + (e.lineno || '?') + '</div>';
+  });
+  window.addEventListener('unhandledrejection', function(e) {
+    var app = document.getElementById('app');
+    if (app) app.innerHTML = '<div style="padding:24px; color:#ff2fa8; font-family:monospace; font-size:13px; white-space:pre-wrap;">Erreur (promesse) :\n' + (e.reason && (e.reason.stack || e.reason.message || e.reason)) + '</div>';
+  });
+  window.__pulseModuleStarted = false;
+  setTimeout(function() {
+    if (!window.__pulseModuleStarted) {
+      var app = document.getElementById('app');
+      if (app) app.innerHTML = '<div style="padding:24px; color:#ff2fa8; font-family:monospace; font-size:13px; white-space:pre-wrap; line-height:1.6;">Le script principal ne s\'est jamais lancé après 6 secondes.\n\nCause la plus probable : un des fichiers Firebase (gstatic.com) n\'a pas pu être téléchargé.\n\nÀ essayer :\n1. Vérifie ta connexion internet (essaie de basculer WiFi <-> données mobiles)\n2. Désactive temporairement un éventuel bloqueur de pub/traceur pour ce site\n3. Recharge la page\n\nSi ça persiste après ces essais, dis-le-moi.</div>';
+    }
+  }, 6000);
+</script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, setPersistence, browserLocalPersistence, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, getDocs, getCountFromServer, collection, addDoc, onSnapshot, updateDoc, deleteDoc, query, where, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+window.__pulseModuleStarted = true;
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC4kEGp0Z-u1fPWkbprJLOqprqyveDec0E",
+  authDomain: "pvlse-app.firebaseapp.com",
+  projectId: "pvlse-app",
+  storageBucket: "pvlse-app.firebasestorage.app",
+  messagingSenderId: "475488095197",
+  appId: "1:475488095197:web:9aacb139f19611b75f4434"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+setPersistence(auth, browserLocalPersistence).catch(() => {});
+const db = getFirestore(fbApp);
+
+const MAPTILER_KEY = "x3s9Whky7gIYlhbSB6MT";
+const MAP_STYLE_ID = "01a08b63-507e-7f12-82db-8b95441499bc";
+const MAP_STYLE_URL = `https://api.maptiler.com/maps/${MAP_STYLE_ID}/style.json?key=${MAPTILER_KEY}`;
+
+const DANCE_STYLES = ["Bachata", "Salsa", "Kizomba", "West Coast Swing", "Zouk", "Tango", "Autre"];
+
+const BANNED_WORDS = [
+  "encule","enculé","enculee","enculee","nique","niquer","niquez","salope","salopes","pute","putes",
+  "connard","connasse","batard","batarde","fdp","ntm","pd","pede","pd","negre","negro","bougnoule",
+  "youpin","chinetoque","bicot","raton","sale race","sale arabe","sale noir","sale juif","hitler","nazi",
+  "viol","violeur","pedophile","pedo","sexe","penis","vagin","bite","chatte","couille","branler",
+  "merde","chiotte","batard","enfoire","tarlouze","tapette","gouine","suceuse","suceur"
+];
+
+function normalizeForFilter(text) {
+  return (text || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function containsBannedWord(text) {
+  if (!text) return false;
+  const normalized = normalizeForFilter(text);
+  return BANNED_WORDS.some(w => normalized.includes(normalizeForFilter(w)));
+}
+const DEPARTMENTS = [
+  "01 - Ain","02 - Aisne","03 - Allier","04 - Alpes-de-Haute-Provence","05 - Hautes-Alpes","06 - Alpes-Maritimes",
+  "07 - Ardèche","08 - Ardennes","09 - Ariège","10 - Aube","11 - Aude","12 - Aveyron","13 - Bouches-du-Rhône",
+  "14 - Calvados","15 - Cantal","16 - Charente","17 - Charente-Maritime","18 - Cher","19 - Corrèze",
+  "2A - Corse-du-Sud","2B - Haute-Corse","21 - Côte-d'Or","22 - Côtes-d'Armor","23 - Creuse","24 - Dordogne",
+  "25 - Doubs","26 - Drôme","27 - Eure","28 - Eure-et-Loir","29 - Finistère","30 - Gard","31 - Haute-Garonne",
+  "32 - Gers","33 - Gironde","34 - Hérault","35 - Ille-et-Vilaine","36 - Indre","37 - Indre-et-Loire","38 - Isère",
+  "39 - Jura","40 - Landes","41 - Loir-et-Cher","42 - Loire","43 - Haute-Loire","44 - Loire-Atlantique","45 - Loiret",
+  "46 - Lot","47 - Lot-et-Garonne","48 - Lozère","49 - Maine-et-Loire","50 - Manche","51 - Marne","52 - Haute-Marne",
+  "53 - Mayenne","54 - Meurthe-et-Moselle","55 - Meuse","56 - Morbihan","57 - Moselle","58 - Nièvre","59 - Nord",
+  "60 - Oise","61 - Orne","62 - Pas-de-Calais","63 - Puy-de-Dôme","64 - Pyrénées-Atlantiques","65 - Hautes-Pyrénées",
+  "66 - Pyrénées-Orientales","67 - Bas-Rhin","68 - Haut-Rhin","69 - Rhône","70 - Haute-Saône","71 - Saône-et-Loire",
+  "72 - Sarthe","73 - Savoie","74 - Haute-Savoie","75 - Paris","76 - Seine-Maritime","77 - Seine-et-Marne",
+  "78 - Yvelines","79 - Deux-Sèvres","80 - Somme","81 - Tarn","82 - Tarn-et-Garonne","83 - Var","84 - Vaucluse",
+  "85 - Vendée","86 - Vienne","87 - Haute-Vienne","88 - Vosges","89 - Yonne","90 - Territoire de Belfort",
+  "91 - Essonne","92 - Hauts-de-Seine","93 - Seine-Saint-Denis","94 - Val-de-Marne","95 - Val-d'Oise",
+  "971 - Guadeloupe","972 - Martinique","973 - Guyane","974 - La Réunion","976 - Mayotte"
+];
+
+const LEGAL_TEXT = `POLITIQUE DE CONFIDENTIALITÉ
+
+Pulse (version alpha) collecte : ton email et mot de passe (pour ton compte), ton prénom, ton rôle, tes danses pratiquées, et selon ton usage, les soirées que tu crées ou auxquelles tu participes.
+
+Si tu le souhaites, tu peux également renseigner ton pseudo Instagram sur ta page de profil. Ce champ est entièrement optionnel, vide par défaut, et visible uniquement par les autres utilisateurs de Pulse (par exemple les danseurs inscrits à une même soirée). Tu peux le modifier ou le supprimer à tout moment depuis ton profil.
+
+Ces données sont hébergées par Firebase (Google Cloud, Europe), conformes RGPD. Elles ne sont jamais vendues ni partagées à des fins commerciales.
+
+Tu peux demander l'accès, la rectification ou la suppression de tes données à tout moment en contactant l'équipe Pulse.
+
+Pulse n'utilise aucun cookie publicitaire ou traceur analytique.
+
+—
+
+CONDITIONS D'UTILISATION
+
+En créant un compte, tu t'engages à fournir des informations exactes.
+
+Organisateurs : vous êtes seuls responsables de l'exactitude des informations publiées (lieu, date, prix) et de votre autorisation à utiliser le lieu indiqué. Pulse est un simple intermédiaire de mise en relation, pas un organisateur d'événements, et ne vérifie pas ces informations.
+
+Danseurs : le "RSVP" est une indication d'intention, pas un engagement contractuel. Vous êtes responsables de votre comportement lors des soirées.
+
+Pulse ne garantit pas la tenue effective des soirées listées ni leur sécurité. Pulse se réserve le droit de retirer tout contenu ou compte ne respectant pas ces règles.
+
+Cette version alpha est un test — les fonctionnalités et conditions peuvent évoluer.`;
+
+const AUTH_ERROR_MESSAGES = {
+  'auth/email-already-in-use': 'Cet email est déjà utilisé.',
+  'auth/invalid-email': 'Adresse email invalide.',
+  'auth/user-not-found': "Aucun compte ne correspond à cet email.",
+  'auth/wrong-password': 'Mot de passe incorrect.',
+  'auth/invalid-credential': 'Email ou mot de passe incorrect.',
+  'auth/too-many-requests': 'Trop de tentatives — réessaie dans quelques minutes.',
+  'auth/network-request-failed': 'Problème de connexion internet.',
+  'auth/weak-password': 'Mot de passe trop faible (6 caractères minimum).'
+};
+function friendlyAuthError(e) {
+  return AUTH_ERROR_MESSAGES[e.code] || ('Erreur : ' + e.message);
+}
+
+function formatEventDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+function todayISO() {
+  const n = new Date();
+  return n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0') + '-' + String(n.getDate()).padStart(2,'0');
+}
+function isEventHidden(ev) {
+  if (!ev.dateISO) return false;
+  const hideAt = new Date(ev.dateISO + 'T00:00:00');
+  hideAt.setDate(hideAt.getDate() + 1);
+  hideAt.setHours(5, 0, 0, 0);
+  return new Date() >= hideAt;
+}
+
+let state = {
+  ready: false,
+  user: null,
+  profile: null,
+  events: [],
+  screen: 'loading',
+  currentEventId: null,
+  viewedProfileUid: null,
+  viewedProfile: null,
+  pendingRole: null,
+  pendingStyles: [],
+  authError: '',
+  infoMsg: '',
+  sortBy: 'date',
+  deptFilter: '',
+  danceFilter: '',
+  searchQuery: '',
+  showFavoritesOnly: false,
+  onboardingStep: 0,
+  showOnboarding: false,
+  online: navigator.onLine,
+  countedViews: new Set(),
+  dismissedNotices: JSON.parse(localStorage.getItem('pulse-dismissed-notices') || '[]'),
+  viewMode: 'list',
+  mapSearchCity: '',
+  mapSearchRadius: 50,
+  mapSearchCenter: null,
+  mapSearchLabel: '',
+  mapSearching: false,
+  mapSearchError: '',
+  adminStats: null,
+  adminOrganizers: null,
+  adminReports: null,
+  pendingReportsCount: null,
+  adminDancers: { items: [], lastDoc: null, hasMore: true, search: '', error: null },
+  adminOrgs: { items: [], lastDoc: null, hasMore: true, search: '', error: null },
+  adminLoading: false
+};
+
+window.addEventListener('online', () => { state.online = true; render(); });
+window.addEventListener('offline', () => { state.online = false; render(); });
+
+let unsubEvents = null;
+
+function watchEvents() {
+  if (unsubEvents) return;
+  const q = query(collection(db, 'events'), orderBy('createdAt', 'desc'));
+  unsubEvents = onSnapshot(q, (snap) => {
+    state.events = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    render();
+  });
+}
+
+const urlParams = new URLSearchParams(window.location.search);
+const deepLinkEventId = urlParams.get('event');
+
+onAuthStateChanged(auth, async (user) => {
+  state.user = user;
+  try {
+    if (user) {
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      state.profile = snap.exists() ? snap.data() : null;
+      if (state.profile && state.profile.banned === true) {
+        await signOut(auth);
+        state.authError = 'Ce compte a été suspendu.';
+        state.screen = 'welcome';
+        state.user = null;
+        state.profile = null;
+        state.ready = true;
+        render();
+        return;
+      }
+      watchEvents();
+      if (!state.profile) {
+        state.screen = 'complete-profile';
+      } else if (deepLinkEventId) {
+        state.currentEventId = deepLinkEventId;
+        state.screen = 'detail';
+      } else {
+        state.screen = 'feed';
+      }
+    } else {
+      state.screen = 'welcome';
+      state.profile = null;
+    }
+  } catch (e) {
+    console.error('Erreur au chargement du profil', e);
+    state.screen = 'welcome';
+    state.authError = "Erreur de chargement (" + (e.code || e.message || 'inconnue') + "). Réessaie de te connecter.";
+    state.user = null;
+    state.profile = null;
+  }
+  state.ready = true;
+  render();
+});
+
+let historyInitialized = false;
+let suppressHistoryPush = false;
+const AUTH_ONLY_SCREENS = ['welcome', 'login', 'signup', 'reset-password', 'complete-profile'];
+
+function syncHistory() {
+  if (suppressHistoryPush) { suppressHistoryPush = false; return; }
+  // Une fois connecté, les écrans de connexion/inscription ne doivent plus jamais entrer dans l'historique
+  if (state.user && AUTH_ONLY_SCREENS.includes(state.screen)) return;
+  const entry = { screen: state.screen, currentEventId: state.currentEventId };
+  if (!historyInitialized) {
+    history.replaceState(entry, '');
+    historyInitialized = true;
+    return;
+  }
+  const cur = history.state;
+  if (!cur || cur.screen !== entry.screen || cur.currentEventId !== entry.currentEventId) {
+    history.pushState(entry, '');
+  }
+}
+
+window.addEventListener('popstate', (e) => {
+  suppressHistoryPush = true;
+  const targetScreen = e.state && e.state.screen;
+  const targetEventId = e.state && e.state.currentEventId;
+  // Si on est connecté et que le retour tenterait de nous ramener sur un écran de connexion,
+  // on "soigne" cette entrée en la remplaçant par le flux principal.
+  if (state.user && targetScreen && AUTH_ONLY_SCREENS.includes(targetScreen)) {
+    state.screen = 'feed';
+    state.currentEventId = null;
+    history.replaceState({screen: 'feed', currentEventId: null}, '');
+    render();
+    return;
+  }
+  if (targetScreen) {
+    state.screen = targetScreen;
+    state.currentEventId = targetEventId || null;
+  } else {
+    state.screen = state.user ? 'feed' : 'welcome';
+  }
+  render();
+});
+
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+  if (!state.ready) { app.appendChild(el('div', {class: 'loading', text: 'PULSE'})); return; }
+  syncHistory();
+
+  if (!state.online) app.appendChild(el('div', {class: 'offline-banner'}, iconLabel('offline', 'Pas de connexion internet', 14)));
+  app.appendChild(el('div', {class: 'save-indicator', id: 'save-indicator', text: 'Sync'}));
+
+  if (state.showOnboarding) { app.appendChild(OnboardingScreen()); return; }
+  if (state.screen === 'welcome') app.appendChild(WelcomeScreen());
+  else if (state.screen === 'signup') app.appendChild(SignupScreen());
+  else if (state.screen === 'login') app.appendChild(LoginScreen());
+  else if (state.screen === 'reset-password') app.appendChild(ResetPasswordScreen());
+  else if (state.screen === 'complete-profile') app.appendChild(CompleteProfileScreen());
+  else if (state.screen === 'feed') app.appendChild(FeedScreen());
+  else if (state.screen === 'detail') app.appendChild(DetailScreen());
+  else if (state.screen === 'create') app.appendChild(CreateScreen());
+  else if (state.screen === 'edit') app.appendChild(EditScreen());
+  else if (state.screen === 'duplicate') app.appendChild(DuplicateScreen());
+  else if (state.screen === 'profile') app.appendChild(ProfileScreen());
+  else if (state.screen === 'legal') app.appendChild(LegalScreen());
+  else if (state.screen === 'my-events') app.appendChild(MyEventsScreen());
+  else if (state.screen === 'history') app.appendChild(HistoryScreen());
+  else if (state.screen === 'other-profile') app.appendChild(OtherProfileScreen());
+  else if (state.screen === 'admin') app.appendChild(AdminScreen());
+}
+
+function iconSvg(name, size) {
+  size = size || 15;
+  const icons = {
+    eye: '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/>',
+    eyeOff: '<path d="M3 3l18 18"/><path d="M10.6 5.1A11 11 0 0 1 12 5c7 0 11 7 11 7a17.7 17.7 0 0 1-3.2 4.1M6.5 6.6C3.8 8.3 2 11 2 12s4 7 11 7c1.5 0 2.9-.3 4.1-.8"/><path d="M9.5 9.5a3 3 0 0 0 4.2 4.2"/>',
+    list: '<line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="14" y2="18"/>',
+    map: '<polygon points="3,6 9,3 15,6 21,3 21,18 15,21 9,18 3,21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/>',
+    instagram: '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r="1.1" fill="currentColor" stroke="none"/>',
+    facebook: '<path d="M15 21v-8h3l.5-4H15V6.5a1.5 1.5 0 0 1 1.5-1.5H18V1.5A22 22 0 0 0 15.5 1 4.5 4.5 0 0 0 11 5.5V9H8v4h3v8z"/>',
+    offline: '<path d="M1 9l2 2c4.9-4.9 12.1-4.9 17 0l2-2C15.9 2.9 8.1 2.9 1 9z"/><path d="M5 13l2 2a7.1 7.1 0 0 1 10 0l2-2a10 10 0 0 0-14 0z"/><line x1="3" y1="3" x2="21" y2="21"/><circle cx="12" cy="19" r="1" fill="currentColor" stroke="none"/>',
+    mail: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 6l10 7 10-7"/>',
+    calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/>',
+    pin: '<path d="M12 22s7-7.5 7-13a7 7 0 0 0-14 0c0 5.5 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/>'
+  };
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px; filter: drop-shadow(0 0 3px currentColor);">${icons[name]}</svg>`;
+}
+
+function iconLabel(name, label, size) {
+  const icon = document.createElement('span');
+  icon.innerHTML = iconSvg(name, size);
+  icon.style.cssText = 'display:inline-flex; vertical-align:-2px; margin-right:6px;';
+  const nodes = [icon];
+  if (label) nodes.push(document.createTextNode(label));
+  return nodes;
+}
+
+function el(tag, attrs = {}, children = []) {
+  const e = document.createElement(tag);
+  for (const k in attrs) {
+    if (k === 'text') e.textContent = attrs[k];
+    else if (k === 'html') e.innerHTML = attrs[k];
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), attrs[k]);
+    else e.setAttribute(k, attrs[k]);
+  }
+  (Array.isArray(children) ? children : [children]).forEach(c => c && e.appendChild(c));
+  return e;
+}
+
+let flashTimeout;
+function flashSaved() {
+  const ind = document.getElementById('save-indicator');
+  if (!ind) return;
+  ind.classList.add('show');
+  clearTimeout(flashTimeout);
+  flashTimeout = setTimeout(() => ind.classList.remove('show'), 900);
+}
+
+function passwordField(placeholder) {
+  const input = el('input', {placeholder, type: 'password'});
+  const toggle = el('span', {
+    class: 'password-toggle', html: iconSvg('eye', 18),
+    onclick: () => {
+      const showing = input.type === 'text';
+      input.type = showing ? 'password' : 'text';
+      toggle.innerHTML = iconSvg(showing ? 'eye' : 'eyeOff', 18);
+    }
+  });
+  const wrap = el('div', {class: 'password-field-wrap'}, [input, toggle]);
+  return { input, wrap };
+}
+
+// ---------- AUTH SCREENS ----------
+
+function WelcomeScreen() {
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
+  screen.appendChild(el('h1', {text: 'Bienvenue.'}));
+  if (state.authError) screen.appendChild(el('div', {class: 'error-msg', text: state.authError}));
+  screen.appendChild(el('p', {class: 'sub', text: 'Connecte-toi ou crée ton compte pour continuer.'}));
+  screen.appendChild(el('button', {class: 'primary', text: 'Créer un compte', onclick: () => { state.screen = 'signup'; state.authError=''; render(); }}));
+  screen.appendChild(el('button', {class: 'secondary', text: 'J\'ai déjà un compte', onclick: () => { state.screen = 'login'; state.authError=''; render(); }}));
+  return screen;
+}
+
+function LoginScreen() {
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'welcome'; render(); }}));
+  screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
+  screen.appendChild(el('h1', {text: 'Connexion'}));
+  if (state.authError) screen.appendChild(el('div', {class: 'error-msg', text: state.authError}));
+  const emailInput = el('input', {placeholder: 'Email', type: 'email'});
+  const { input: passInput, wrap: passWrap } = passwordField('Mot de passe');
+  screen.appendChild(el('div', {class: 'field'}, [emailInput]));
+  screen.appendChild(passWrap);
+  const btn = el('button', {
+    class: 'primary', text: 'Se connecter',
+    onclick: async () => {
+      state.authError = '';
+      btn.disabled = true; btn.textContent = 'Connexion…';
+      try {
+        await signInWithEmailAndPassword(auth, emailInput.value.trim(), passInput.value);
+      } catch (e) {
+        state.authError = friendlyAuthError(e);
+        btn.disabled = false; btn.textContent = 'Se connecter';
+        render();
+      }
+    }
+  });
+  screen.appendChild(btn);
+  screen.appendChild(el('button', {class: 'link-btn', text: 'Mot de passe oublié ?', style: 'margin-top:16px;', onclick: () => { state.screen = 'reset-password'; state.authError=''; render(); }}));
+  return screen;
+}
+
+function ResetPasswordScreen() {
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'login'; render(); }}));
+  screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
+  screen.appendChild(el('h1', {text: 'Mot de passe oublié'}));
+  screen.appendChild(el('p', {class: 'sub', text: "On t'envoie un lien par email pour le réinitialiser."}));
+  const msgBox = el('div', {});
+  screen.appendChild(msgBox);
+  const emailInput = el('input', {placeholder: 'Email', type: 'email'});
+  screen.appendChild(el('div', {class: 'field'}, [emailInput]));
+  const btn = el('button', {
+    class: 'primary', text: 'Envoyer le lien',
+    onclick: async () => {
+      msgBox.innerHTML = '';
+      if (!emailInput.value.trim()) { msgBox.appendChild(el('div', {class: 'error-msg', text: 'Renseigne ton email.'})); return; }
+      btn.disabled = true; btn.textContent = 'Envoi…';
+      try {
+        await sendPasswordResetEmail(auth, emailInput.value.trim());
+        msgBox.appendChild(el('div', {class: 'info-msg', text: '✓ Email envoyé — vérifie ta boîte de réception (et tes spams).'}));
+        btn.textContent = 'Envoyé ✓';
+      } catch (e) {
+        msgBox.appendChild(el('div', {class: 'error-msg', text: friendlyAuthError(e)}));
+        btn.disabled = false; btn.textContent = 'Envoyer le lien';
+      }
+    }
+  });
+  screen.appendChild(btn);
+  return screen;
+}
+
+function SignupScreen() {
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'welcome'; render(); }}));
+  screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
+  screen.appendChild(el('h1', {text: 'Créer un compte'}));
+  if (state.authError) screen.appendChild(el('div', {class: 'error-msg', text: state.authError}));
+
+  const nameInput = el('input', {placeholder: 'Ton prénom', maxlength: '30'});
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Prénom'}), nameInput]));
+
+  const emailInput = el('input', {placeholder: 'Email', type: 'email'});
+  const { input: passInput, wrap: passWrap } = passwordField('Mot de passe (6 caractères min.)');
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Email'}), emailInput]));
+  screen.appendChild(el('label', {text: 'Mot de passe'}));
+  screen.appendChild(passWrap);
+
+  screen.appendChild(el('label', {text: 'Tu es'}));
+  const roleGrid = el('div', {class: 'role-grid', style: 'margin-bottom:20px'});
+  const dancerCard = el('div', { class: 'role-card' }, [el('h3', {text: 'Danseur·se'})]);
+  const orgCard = el('div', { class: 'role-card' }, [el('h3', {text: 'Organisateur·rice'})]);
+  const updateRoleCards = () => {
+    dancerCard.style.borderColor = state.pendingRole === 'dancer' ? 'var(--blue)' : '';
+    orgCard.style.borderColor = state.pendingRole === 'organizer' ? 'var(--blue)' : '';
+  };
+  dancerCard.onclick = () => { state.pendingRole = 'dancer'; updateRoleCards(); };
+  orgCard.onclick = () => { state.pendingRole = 'organizer'; updateRoleCards(); };
+  updateRoleCards();
+  roleGrid.appendChild(dancerCard); roleGrid.appendChild(orgCard);
+  screen.appendChild(roleGrid);
+
+  screen.appendChild(el('label', {text: 'Danses pratiquées'}));
+  const styleWrap = el('div', {class: 'style-wrap'});
+  DANCE_STYLES.forEach(style => {
+    const active = state.pendingStyles.includes(style);
+    const chip = el('span', {
+      class: 'style-chip' + (active ? ' active' : ''), text: style,
+      onclick: () => {
+        if (state.pendingStyles.includes(style)) state.pendingStyles = state.pendingStyles.filter(s => s !== style);
+        else state.pendingStyles.push(style);
+        chip.className = 'style-chip' + (state.pendingStyles.includes(style) ? ' active' : '');
+      }
+    });
+    styleWrap.appendChild(chip);
+  });
+  screen.appendChild(styleWrap);
+
+  const legalCheckbox = el('input', {type: 'checkbox', id: 'legal-accept'});
+  const legalRow = el('div', {class: 'checkbox-row'});
+  legalRow.appendChild(legalCheckbox);
+  const legalLabel = el('label', {});
+  legalLabel.setAttribute('for', 'legal-accept');
+  legalLabel.appendChild(document.createTextNode("J'ai lu et j'accepte les "));
+  legalLabel.appendChild(el('span', {text: 'mentions légales et la politique de confidentialité', style: 'color:var(--blue); text-decoration:underline; cursor:pointer;', onclick: (e) => { e.preventDefault(); state.screen = 'legal'; render(); }}));
+  legalRow.appendChild(legalLabel);
+  screen.appendChild(legalRow);
+
+  const btn = el('button', {
+    class: 'primary', text: 'Créer mon compte',
+    onclick: async () => {
+      state.authError = '';
+      const name = nameInput.value.trim();
+      if (!name) { state.authError = 'Renseigne ton prénom.'; render(); return; }
+      if (containsBannedWord(name)) { state.authError = "Ce prénom contient des termes non autorisés."; render(); return; }
+      if (!emailInput.value.trim() || passInput.value.length < 6) { state.authError = 'Email valide et mot de passe de 6 caractères minimum.'; render(); return; }
+      if (!state.pendingRole) { state.authError = 'Choisis si tu es danseur·se ou organisateur·rice.'; render(); return; }
+      if (!legalCheckbox.checked) { state.authError = "Merci d'accepter les mentions légales pour continuer."; render(); return; }
+      btn.disabled = true; btn.textContent = 'Création…';
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, emailInput.value.trim(), passInput.value);
+        try { await sendEmailVerification(cred.user); } catch(e) {}
+        const profile = { name, role: state.pendingRole, danceStyles: state.pendingStyles, acceptedLegalAt: Date.now(), favorites: [], verified: state.pendingRole === 'organizer' ? false : true };
+        await setDoc(doc(db, 'users', cred.user.uid), profile);
+        state.profile = profile;
+        state.showOnboarding = true;
+        state.onboardingStep = 0;
+      } catch (e) {
+        state.authError = friendlyAuthError(e);
+        btn.disabled = false; btn.textContent = 'Créer mon compte';
+        render();
+      }
+    }
+  });
+  screen.appendChild(btn);
+  return screen;
+}
+
+function CompleteProfileScreen() {
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
+  screen.appendChild(el('h1', {text: 'Ton profil'}));
+  screen.appendChild(el('p', {class: 'sub', text: "Dernière étape avant d'entrer."}));
+  const nameInput = el('input', {placeholder: 'Ton prénom', maxlength: '30'});
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Prénom'}), nameInput]));
+  screen.appendChild(el('label', {text: 'Tu es'}));
+  const roleGrid = el('div', {class: 'role-grid', style: 'margin-bottom:20px'});
+  const dancerCard = el('div', { class: 'role-card' }, [el('h3', {text: 'Danseur·se'})]);
+  const orgCard = el('div', { class: 'role-card' }, [el('h3', {text: 'Organisateur·rice'})]);
+  const updateRoleCards = () => {
+    dancerCard.style.borderColor = state.pendingRole === 'dancer' ? 'var(--blue)' : '';
+    orgCard.style.borderColor = state.pendingRole === 'organizer' ? 'var(--blue)' : '';
+  };
+  dancerCard.onclick = () => { state.pendingRole = 'dancer'; updateRoleCards(); };
+  orgCard.onclick = () => { state.pendingRole = 'organizer'; updateRoleCards(); };
+  updateRoleCards();
+  roleGrid.appendChild(dancerCard); roleGrid.appendChild(orgCard);
+  screen.appendChild(roleGrid);
+  screen.appendChild(el('label', {text: 'Danses pratiquées'}));
+  const styleWrap = el('div', {class: 'style-wrap'});
+  DANCE_STYLES.forEach(style => {
+    const active = state.pendingStyles.includes(style);
+    const chip = el('span', {
+      class: 'style-chip' + (active ? ' active' : ''), text: style,
+      onclick: () => {
+        if (state.pendingStyles.includes(style)) state.pendingStyles = state.pendingStyles.filter(s => s !== style);
+        else state.pendingStyles.push(style);
+        chip.className = 'style-chip' + (state.pendingStyles.includes(style) ? ' active' : '');
+      }
+    });
+    styleWrap.appendChild(chip);
+  });
+  screen.appendChild(styleWrap);
+  const errorBox = el('div', {});
+  screen.appendChild(errorBox);
+  const btn = el('button', {
+    class: 'primary', text: 'Entrer dans Pulse',
+    onclick: async () => {
+      const name = nameInput.value.trim();
+      if (!name || !state.pendingRole) return;
+      if (containsBannedWord(name)) { errorBox.innerHTML = ''; errorBox.appendChild(el('div', {class: 'error-msg', text: 'Ce prénom contient des termes non autorisés.'})); return; }
+      btn.disabled = true; btn.textContent = 'Création…';
+      const profile = { name, role: state.pendingRole, danceStyles: state.pendingStyles, favorites: [], verified: state.pendingRole === 'organizer' ? false : true };
+      await setDoc(doc(db, 'users', state.user.uid), profile);
+      state.profile = profile;
+      state.screen = 'feed';
+      render();
+    }
+  });
+  screen.appendChild(btn);
+  return screen;
+}
+
+function OnboardingScreen() {
+  const slides = state.pendingRole === 'organizer' ? [
+    { title: 'Bienvenue sur Pulse', text: 'Publie tes soirées et fais-les découvrir aux danseurs de ton département.' },
+    { title: 'Suis qui vient', text: "Chaque soirée affiche la liste des danseurs inscrits, en temps réel." },
+    { title: "C'est parti", text: "Crée ta première soirée dès maintenant depuis le bouton +." }
+  ] : [
+    { title: 'Bienvenue sur Pulse', text: 'Découvre les soirées de danse près de chez toi, filtrées par département.' },
+    { title: 'RSVP en un clic', text: 'Dis "j\'y vais" et vois qui d\'autre sera présent.' },
+    { title: 'Filtre à ta façon', text: 'Trie par date, popularité, prix, ou ne garde que tes styles favoris.' }
+  ];
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
+  const s = slides[state.onboardingStep];
+  screen.appendChild(el('h1', {text: s.title}));
+  screen.appendChild(el('p', {class: 'sub', text: s.text}));
+  const dots = el('div', {class: 'onboard-dots'});
+  slides.forEach((_, i) => dots.appendChild(el('span', {class: 'onboard-dot' + (i === state.onboardingStep ? ' active' : '')})));
+  screen.appendChild(dots);
+  const isLast = state.onboardingStep === slides.length - 1;
+  screen.appendChild(el('button', {
+    class: 'primary', text: isLast ? 'Découvrir Pulse' : 'Suivant',
+    onclick: () => {
+      if (isLast) { state.showOnboarding = false; state.screen = 'feed'; }
+      else state.onboardingStep++;
+      render();
+    }
+  }));
+  return screen;
+}
+
+// ---------- LEGAL ----------
+
+function LegalScreen() {
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = state.profile ? 'profile' : 'signup'; render(); }}));
+  screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
+  screen.appendChild(el('h1', {text: 'Mentions légales'}));
+  const pre = document.createElement('div');
+  pre.style.cssText = 'white-space:pre-wrap; color:var(--muted); font-size:14px; line-height:1.7; font-weight:500;';
+  pre.textContent = LEGAL_TEXT;
+  screen.appendChild(pre);
+  return screen;
+}
+
+// ---------- PROFILE ----------
+
+function ProfileScreen() {
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'feed'; render(); }}));
+  screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
+  screen.appendChild(el('h1', {text: 'Ton profil'}));
+
+  if (state.user && !state.user.emailVerified) {
+    let pollActive = true;
+    const pollVerify = async () => {
+      while (pollActive) {
+        await new Promise(r => setTimeout(r, 4000));
+        if (!pollActive || state.screen !== 'profile') return;
+        try {
+          await state.user.reload();
+          state.user = auth.currentUser;
+          if (state.user.emailVerified) { render(); return; }
+        } catch (e) {}
+      }
+    };
+    pollVerify();
+
+    const verifyStatus = el('span', {text: '', style: 'display:block; margin-top:6px; color:var(--blue); font-weight:700;'});
+    const resendBtn = el('span', {class: 'link-btn', text: "Renvoyer l'email de vérification", style: 'display:inline-block; margin-top:6px;'});
+    resendBtn.onclick = async () => {
+      resendBtn.textContent = 'Envoi…';
+      try {
+        await sendEmailVerification(state.user);
+        resendBtn.textContent = "Renvoyer l'email de vérification";
+        verifyStatus.textContent = '✓ Email envoyé — vérifie ta boîte de réception (et tes spams).';
+      } catch (e) {
+        resendBtn.textContent = "Renvoyer l'email de vérification";
+        verifyStatus.textContent = "✗ " + friendlyAuthError(e);
+        verifyStatus.style.color = 'var(--pink)';
+      }
+    };
+    const vb = el('div', {class: 'verify-banner'}, [
+      el('div', {}, iconLabel('mail', 'Email non vérifié.', 14)),
+      resendBtn,
+      verifyStatus
+    ]);
+    screen.appendChild(vb);
+  }
+
+  const nameInput = el('input', {placeholder: 'Ton prénom', maxlength: '30'});
+  nameInput.value = state.profile.name;
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Prénom'}), nameInput]));
+
+  const instaInput = el('input', {placeholder: '@ton_pseudo', maxlength: '40'});
+  instaInput.value = state.profile.instagram || '';
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Instagram (optionnel)'}), instaInput]));
+  screen.appendChild(el('p', {class: 'sub', style: 'font-size:13px; margin-top:-8px; margin-bottom:20px;', text: "Visible par les autres danseurs sur ton profil. Laisse vide si tu ne veux rien partager."}));
+
+  screen.appendChild(el('div', {class: 'field'}, [
+    el('label', {text: 'Rôle'}),
+    el('div', {text: state.profile.role === 'dancer' ? 'Danseur·se' : 'Organisateur·rice', style: 'padding:6px 0; color:var(--muted); font-weight:600;'})
+  ]));
+
+  let localStyles = [...(state.profile.danceStyles || [])];
+  screen.appendChild(el('label', {text: 'Danses pratiquées'}));
+  const styleWrap = el('div', {class: 'style-wrap'});
+  DANCE_STYLES.forEach(style => {
+    const active = localStyles.includes(style);
+    const chip = el('span', {
+      class: 'style-chip' + (active ? ' active' : ''), text: style,
+      onclick: () => {
+        if (localStyles.includes(style)) localStyles = localStyles.filter(s => s !== style);
+        else localStyles.push(style);
+        chip.className = 'style-chip' + (localStyles.includes(style) ? ' active' : '');
+      }
+    });
+    styleWrap.appendChild(chip);
+  });
+  screen.appendChild(styleWrap);
+
+  let localIsCreator = !!state.profile.isCreator;
+  const creatorChip = el('span', {
+    class: 'style-chip' + (localIsCreator ? ' active' : ''), text: '★ Créateur·rice de Pulse',
+    onclick: () => { localIsCreator = !localIsCreator; creatorChip.className = 'style-chip' + (localIsCreator ? ' active' : ''); }
+  });
+  screen.appendChild(el('div', {class: 'style-wrap'}, [creatorChip]));
+
+  const profileErrorBox = el('div', {});
+  screen.appendChild(profileErrorBox);
+  const btn = el('button', {
+    class: 'primary', text: 'Enregistrer',
+    onclick: async () => {
+      const name = nameInput.value.trim();
+      if (!name) return;
+      if (containsBannedWord(name)) { profileErrorBox.innerHTML = ''; profileErrorBox.appendChild(el('div', {class: 'error-msg', text: 'Ce prénom contient des termes non autorisés.'})); return; }
+      btn.disabled = true; btn.textContent = 'Enregistrement…';
+      const instagram = instaInput.value.trim().replace(/^@/, '');
+      const updated = { ...state.profile, name, danceStyles: localStyles, isCreator: localIsCreator, instagram };
+      await updateDoc(doc(db, 'users', state.user.uid), { name, danceStyles: localStyles, isCreator: localIsCreator, instagram });
+      state.profile = updated;
+      state.screen = 'feed';
+      render();
+    }
+  });
+  screen.appendChild(btn);
+
+  if (state.profile.role === 'dancer') {
+    screen.appendChild(el('button', {class: 'secondary', text: 'Historique de mes soirées', onclick: () => { state.screen = 'history'; render(); }}));
+  }
+  if (state.profile.role === 'organizer') {
+    screen.appendChild(el('button', {class: 'secondary', text: 'Mes soirées', onclick: () => { state.screen = 'my-events'; render(); }}));
+  }
+  screen.appendChild(el('button', {class: 'secondary', text: 'Mentions légales & confidentialité', onclick: () => { state.screen = 'legal'; render(); }}));
+  if (state.profile.isCreator) {
+    screen.appendChild(el('span', {class: 'badge-anchor', style: 'display:block; margin-top:10px;'}, [
+      el('button', {class: 'secondary danger-outline', text: 'Administration', style: 'margin-top:0;', onclick: () => {
+        state.adminStats = null; state.adminOrganizers = null; state.adminReports = null;
+        state.adminDancers = { items: [], lastDoc: null, hasMore: true, search: '', error: null };
+        state.adminOrgs = { items: [], lastDoc: null, hasMore: true, search: '', error: null };
+        state.screen = 'admin'; render();
+      }}),
+      state.pendingReportsCount > 0 ? el('span', {class: 'notif-badge', text: String(state.pendingReportsCount)}) : null
+    ]));
+  }
+  return screen;
+}
+
+async function submitReport(type, targetId, targetName) {
+  const reason = prompt('Pourquoi signales-tu ' + (type === 'user' ? 'ce profil' : 'cette soirée') + ' ? (optionnel)', '');
+  if (reason === null) return;
+  try {
+    await addDoc(collection(db, 'reports'), {
+      type, targetId, targetName: targetName || '',
+      reporterUid: state.user.uid, reporterName: state.profile.name || '',
+      reason: reason || '', status: 'pending', createdAt: Date.now()
+    });
+    flashSaved();
+  } catch (e) { console.error('Échec du signalement', e); }
+}
+
+function OtherProfileScreen() {
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'detail'; render(); }}));
+  screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
+  if (!state.viewedProfile) {
+    screen.appendChild(el('div', {class: 'empty', text: 'Profil introuvable.'}));
+    return screen;
+  }
+  const p = state.viewedProfile;
+  screen.appendChild(el('h1', {text: p.name}));
+  screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Rôle'}), el('div', {text: p.role === 'dancer' ? 'Danseur·se' : 'Organisateur·rice'})]));
+  if (p.danceStyles && p.danceStyles.length) {
+    screen.appendChild(el('label', {text: 'Danses pratiquées', style: 'margin-top:16px;'}));
+    const wrap = el('div', {class: 'style-wrap'});
+    p.danceStyles.forEach(s => wrap.appendChild(el('span', {class: 'style-chip active', text: s})));
+    screen.appendChild(wrap);
+  }
+  if (p.instagram) {
+    const socialRow = el('div', {style: 'display:flex; gap:10px; margin-top:16px; margin-bottom:20px; flex-wrap:wrap;'});
+    socialRow.appendChild(el('span', {
+      class: 'style-chip', style: 'border-color:var(--pink-dim); color:var(--pink);',
+      onclick: () => window.open('https://instagram.com/' + p.instagram, '_blank')
+    }, iconLabel('instagram', '@' + p.instagram)));
+    screen.appendChild(socialRow);
+  }
+  if (p.role === 'organizer') {
+    const others = state.events.filter(ev => ev.organizerUid === state.viewedProfileUid && ev.status !== 'cancelled' && !isEventHidden(ev) && ev.id !== state.currentEventId);
+    screen.appendChild(el('h4', {text: 'Autres soirées de ' + p.name, style: 'margin-top:26px; margin-bottom:12px; font-family:Orbitron,sans-serif; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em;'}));
+    if (others.length === 0) {
+      screen.appendChild(el('div', {class: 'empty', text: 'Aucune autre soirée pour le moment.'}));
+    } else {
+      others.forEach(ev => {
+        screen.appendChild(el('div', { class: 'event-card', onclick: () => { state.currentEventId = ev.id; state.screen = 'detail'; render(); } }, [
+          el('div', {class: 'event-date', text: formatEventDate(ev.dateISO) + ' · ' + ev.time}),
+          el('div', {class: 'event-title', text: ev.title}),
+          el('div', {class: 'event-meta', text: ev.place})
+        ]));
+      });
+    }
+  }
+  screen.appendChild(el('button', {
+    class: 'secondary danger-outline', text: 'Signaler ce profil', style: 'margin-top:24px;',
+    onclick: () => submitReport('user', state.viewedProfileUid, p.name)
+  }));
+  return screen;
+}
+
+// ---------- FEED ----------
+
+function FeedScreen() {
+  if (state.profile.isCreator && state.pendingReportsCount === null) loadPendingReportsCount();
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('div', {class: 'topbar'}, [
+    el('div', {class: 'brand', text: 'PULSE'}),
+    el('div', {class: 'topbar-actions'}, [
+      el('span', {class: 'badge-anchor'}, [
+        el('button', {class: 'icon-btn', text: 'Profil', onclick: async () => {
+          try { await state.user.reload(); state.user = auth.currentUser; } catch(e) {}
+          state.screen = 'profile'; render();
+        }}),
+        (state.profile.isCreator && state.pendingReportsCount > 0) ? el('span', {class: 'notif-badge', text: String(state.pendingReportsCount)}) : null
+      ]),
+      state.profile.isCreator ? el('span', {class: 'dept-badge', text: '★ Créateur·rice', style: 'margin-bottom:0'}) : null,
+      el('div', {
+        class: 'role-pill', text: 'Déconnexion',
+        style: 'cursor:pointer', onclick: async () => { await signOut(auth); }
+      })
+    ])
+  ]));
+
+  // Notifications d'annulation pour les soirées auxquelles le danseur était inscrit
+  const cancelledForMe = state.events.filter(ev => ev.status === 'cancelled' && (ev.attendees||[]).some(a => a.uid === state.user.uid) && !state.dismissedNotices.includes(ev.id));
+  cancelledForMe.forEach(ev => {
+    const banner = el('div', {class: 'notice-banner'}, [
+      el('div', {class: 'title', text: 'Soirée annulée : ' + ev.title}),
+      el('div', {text: ev.cancelReason || "L'organisateur a annulé cette soirée."}),
+      el('span', {class: 'link-btn', text: 'OK, compris', style: 'display:inline-block; margin-top:8px;', onclick: async () => {
+        state.dismissedNotices.push(ev.id);
+        localStorage.setItem('pulse-dismissed-notices', JSON.stringify(state.dismissedNotices));
+        const newAttendees = (ev.attendees||[]).filter(a => a.uid !== state.user.uid);
+        ev.attendees = newAttendees;
+        render();
+        try { await updateDoc(doc(db, 'events', ev.id), { attendees: newAttendees }); } catch(e) {}
+      }})
+    ]);
+    screen.appendChild(banner);
+  });
+
+  screen.appendChild(el('h1', {text: 'Soirées à venir'}));
+
+  const toggleRow = el('div', {class: 'view-toggle'});
+  toggleRow.appendChild(el('span', {
+    class: 'view-toggle-btn' + (state.viewMode === 'list' ? ' active' : ''),
+    onclick: () => { state.viewMode = 'list'; render(); }
+  }, iconLabel('list', 'Liste')));
+  toggleRow.appendChild(el('span', {
+    class: 'view-toggle-btn' + (state.viewMode === 'map' ? ' active' : ''),
+    onclick: () => { state.viewMode = 'map'; render(); }
+  }, iconLabel('map', 'Carte')));
+  screen.appendChild(toggleRow);
+
+  if (state.viewMode === 'map') {
+    return MapFullScreen();
+  }
+
+  const searchInput = el('input', {class: 'search-input', placeholder: 'Rechercher un titre, un lieu…', value: state.searchQuery});
+  searchInput.oninput = (e) => { state.searchQuery = e.target.value; renderFeedListOnly(); };
+  screen.appendChild(searchInput);
+
+  const filterRow = el('div', {class: 'filter-row'});
+  filterRow.appendChild(el('span', {
+    class: 'sort-chip' + (state.showFavoritesOnly ? ' active' : ''), text: '❤ Favoris',
+    onclick: () => { state.showFavoritesOnly = !state.showFavoritesOnly; render(); }
+  }));
+  DANCE_STYLES.forEach(style => {
+    filterRow.appendChild(el('span', {
+      class: 'sort-chip' + (state.danceFilter === style ? ' active' : ''), text: style,
+      onclick: () => { state.danceFilter = state.danceFilter === style ? '' : style; render(); }
+    }));
+  });
+  screen.appendChild(filterRow);
+
+  const allDepts = [...new Set(state.events.map(ev => ev.dept).filter(Boolean))].sort();
+  if (allDepts.length > 0) {
+    const deptSelect = el('select', { onchange: (e) => { state.deptFilter = e.target.value; render(); } });
+    deptSelect.appendChild(el('option', {text: 'Tous les départements', value: ''}));
+    allDepts.forEach(d => {
+      const opt = el('option', {text: d, value: d});
+      if (state.deptFilter === d) opt.setAttribute('selected', 'selected');
+      deptSelect.appendChild(opt);
+    });
+    screen.appendChild(deptSelect);
+  }
+
+  const sortRow = el('div', {class: 'sort-row'});
+  [['date','Date'],['popular','Popularité'],['price','Prix']].forEach(([key,label]) => {
+    sortRow.appendChild(el('span', {
+      class: 'sort-chip' + (state.sortBy === key ? ' active' : ''), text: label,
+      onclick: () => { state.sortBy = key; render(); }
+    }));
+  });
+  screen.appendChild(sortRow);
+
+  const list = el('div', {id: 'feed-list'});
+  list.appendChild(buildFeedList());
+  screen.appendChild(list);
+
+  if (state.profile.role === 'organizer') {
+    if (state.profile.isCreator || state.profile.verified === true) {
+      screen.appendChild(el('button', {class: 'fab', text: '+', onclick: () => { state.screen = 'create'; render(); }}));
+    } else {
+      screen.appendChild(el('div', {class: 'verify-banner', text: '⏳ Ton compte organisateur est en attente de vérification. Tu pourras publier des soirées une fois validé.', style: 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); width:calc(100% - 44px); max-width:416px;'}));
+    }
+  }
+  return screen;
+}
+
+function renderFeedListOnly() {
+  const list = document.getElementById('feed-list');
+  if (!list) return;
+  list.innerHTML = '';
+  list.appendChild(buildFeedList());
+}
+
+function buildFeedList() {
+  const frag = document.createDocumentFragment();
+  let events = state.events.filter(ev => !isEventHidden(ev) && ev.status !== 'cancelled');
+  if (state.deptFilter) events = events.filter(ev => ev.dept === state.deptFilter);
+  if (state.danceFilter) events = events.filter(ev => (ev.danceStyles||[]).includes(state.danceFilter));
+  if (state.searchQuery.trim()) {
+    const q = state.searchQuery.trim().toLowerCase();
+    events = events.filter(ev => (ev.title||'').toLowerCase().includes(q) || (ev.place||'').toLowerCase().includes(q));
+  }
+  if (state.showFavoritesOnly) {
+    const favs = state.profile.favorites || [];
+    events = events.filter(ev => favs.includes(ev.id));
+  }
+  if (state.sortBy === 'popular') events.sort((a, b) => (b.attendees||[]).length - (a.attendees||[]).length);
+  else if (state.sortBy === 'price') events.sort((a, b) => (a.price||0) - (b.price||0));
+  else events.sort((a, b) => ((a.dateISO||'') + (a.time||'')).localeCompare((b.dateISO||'') + (b.time||'')));
+
+  if (events.length === 0) {
+    frag.appendChild(el('div', {class: 'empty', text: 'Aucune soirée pour le moment.'}));
+    return frag;
+  }
+  events.forEach(ev => {
+    const attendees = ev.attendees || [];
+    const going = attendees.some(a => a.uid === state.user.uid);
+    const isFav = (state.profile.favorites || []).includes(ev.id);
+    const card = el('div', { class: 'event-card', onclick: () => { state.currentEventId = ev.id; state.screen = 'detail'; render(); } }, [
+      el('button', {
+        class: 'fav-btn' + (isFav ? ' active' : ''), text: isFav ? '♥' : '♡',
+        onclick: async (e) => {
+          e.stopPropagation();
+          const favs = state.profile.favorites || [];
+          const newFavs = isFav ? favs.filter(id => id !== ev.id) : [...favs, ev.id];
+          state.profile.favorites = newFavs;
+          render();
+          try { await updateDoc(doc(db, 'users', state.user.uid), { favorites: newFavs }); } catch(err) {}
+        }
+      }),
+      el('div', {class: 'event-date', text: formatEventDate(ev.dateISO) + ' · ' + ev.time}),
+      el('div', {class: 'event-title', text: ev.title}),
+      el('div', {class: 'event-meta', text: ev.place}),
+      el('div', {class: 'event-price', text: (ev.price ? ev.price + ' €' : 'Gratuit') + ' · ' + attendees.length + ' inscrit·e·s'})
+    ]);
+    if ((ev.danceStyles||[]).length) {
+      const dwrap = el('div', {style: 'margin-top:6px;'});
+      ev.danceStyles.forEach(s => dwrap.appendChild(el('span', {class: 'attendee-chip', text: s, style: 'background:rgba(47,217,255,0.08); border-color:var(--blue-dim); color:var(--blue); cursor:default;'})));
+      card.appendChild(dwrap);
+    }
+    if (ev.dept) card.insertBefore(el('div', {class: 'dept-badge', text: ev.dept}), card.firstChild);
+    if (going) card.appendChild(el('div', {class: 'event-going', text: '✓ Tu y vas'}));
+    frag.appendChild(card);
+  });
+  return frag;
+}
+
+// ---------- MAP (MapTiler + Leaflet, DA Tron) ----------
+
+const geocodeCache = {};
+
+async function geocodePlace(query) {
+  if (!query) return null;
+  if (geocodeCache[query]) return geocodeCache[query];
+  try {
+    const res = await fetch(`https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&country=fr&limit=1`);
+    const data = await res.json();
+    if (!data.features || !data.features.length) { geocodeCache[query] = null; return null; }
+    const [lng, lat] = data.features[0].center;
+    const result = { lat, lng };
+    geocodeCache[query] = result;
+    return result;
+  } catch (e) {
+    return null;
+  }
+}
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function eventQueryString(ev) {
+  if (ev.address && ev.address.trim()) return ev.address.trim() + ', France';
+  const deptName = ev.dept ? ev.dept.split(' - ')[1] : '';
+  return ev.place + (deptName ? ', ' + deptName : '') + ', France';
+}
+
+let mapLibreLoadPromise = null;
+function ensureMapLibreLoaded() {
+  if (window.maplibregl) return Promise.resolve();
+  if (mapLibreLoadPromise) return mapLibreLoadPromise;
+  mapLibreLoadPromise = new Promise((resolve, reject) => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css';
+    document.head.appendChild(link);
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('maplibre-load-failed'));
+    document.head.appendChild(script);
+  });
+  return mapLibreLoadPromise;
+}
+
+function pinIconHtml(size) {
+  const h = Math.round(size * 1.3);
+  return `<svg width="${size}" height="${h}" viewBox="0 0 24 32" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 0 4px #ff2fa8) drop-shadow(0 0 10px #ff2fa8) drop-shadow(0 0 16px #2fd9ff);">
+    <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0z" fill="#ff2fa8"/>
+    <circle cx="12" cy="12" r="6" fill="#060608"/>
+    <circle cx="12" cy="12" r="2.8" fill="#2fd9ff"/>
+  </svg>`;
+}
+
+function pinElement(size) {
+  const wrap = document.createElement('div');
+  wrap.innerHTML = pinIconHtml(size);
+  wrap.style.cursor = 'pointer';
+  return wrap;
+}
+
+function circleGeoJSON(lat, lng, radiusKm, points) {
+  points = points || 64;
+  const coords = [];
+  const distanceX = radiusKm / (111.320 * Math.cos(lat * Math.PI / 180));
+  const distanceY = radiusKm / 110.574;
+  for (let i = 0; i <= points; i++) {
+    const theta = (i / points) * (2 * Math.PI);
+    coords.push([lng + distanceX * Math.cos(theta), lat + distanceY * Math.sin(theta)]);
+  }
+  return { type: 'Feature', geometry: { type: 'Polygon', coordinates: [coords] } };
+}
+
+async function initEventMap(container, ev) {
+  if (!ev.place) { container.remove(); return; }
+  container.innerHTML = '<div class="event-map-loading">Localisation…</div>';
+  try {
+    await ensureMapLibreLoaded();
+    let coords;
+    if (typeof ev.lat === 'number' && typeof ev.lng === 'number') {
+      coords = { lat: ev.lat, lng: ev.lng };
+    } else {
+      coords = await geocodePlace(eventQueryString(ev));
+      if (coords) updateDoc(doc(db, 'events', ev.id), { lat: coords.lat, lng: coords.lng }).catch(() => {});
+    }
+    if (!coords) throw new Error('no-result');
+
+    container.innerHTML = '';
+    const map = new maplibregl.Map({
+      container, style: MAP_STYLE_URL, center: [coords.lng, coords.lat], zoom: 14,
+      attributionControl: true, scrollZoom: false, dragRotate: false
+    });
+    map.addControl(new maplibregl.NavigationControl({showCompass: false}), 'top-right');
+    new maplibregl.Marker({element: pinElement(30), anchor: 'bottom'}).setLngLat([coords.lng, coords.lat]).addTo(map);
+
+    setTimeout(() => map.resize(), 50);
+  } catch (e) {
+    container.innerHTML = '<div class="event-map-loading">Carte indisponible</div>';
+  }
+}
+
+function MapFullScreen() {
+  const wrap = el('div', {class: 'map-fullscreen'});
+
+  const controls = el('div', {class: 'map-floating-controls'});
+  controls.appendChild(el('div', {class: 'map-floating-topbar'}, [
+    el('div', {class: 'brand', text: 'PULSE', style: 'margin-bottom:0;'}),
+    el('span', {class: 'map-nav-btn', onclick: () => { state.viewMode = 'list'; render(); }}, iconLabel('list', 'Liste'))
+  ]));
+
+  const searchPanel = el('div', {class: 'map-search-panel'});
+  searchPanel.appendChild(el('div', {class: 'map-search-title', text: 'Chercher une zone'}));
+  if (state.mapSearchError) searchPanel.appendChild(el('div', {class: 'error-msg', style: 'margin-bottom:8px;', text: state.mapSearchError}));
+
+  const cityInput = el('input', {placeholder: 'Ville (ex. Avignon)', value: state.mapSearchCity, style: 'margin-bottom:0;'});
+  cityInput.oninput = (e) => { state.mapSearchCity = e.target.value; };
+  cityInput.onkeydown = (e) => { if (e.key === 'Enter') runGeoSearch(); };
+
+  const radiusSelect = el('select', {style: 'margin-bottom:0;'});
+  [10, 25, 50, 100, 200].forEach(km => {
+    const opt = el('option', {text: km + ' km', value: String(km)});
+    if (state.mapSearchRadius === km) opt.setAttribute('selected', 'selected');
+    radiusSelect.appendChild(opt);
+  });
+  radiusSelect.onchange = (e) => { state.mapSearchRadius = Number(e.target.value); };
+
+  const searchBtn = el('button', {class: 'geo-search-btn', text: state.mapSearching ? '…' : 'Chercher', onclick: () => runGeoSearch()});
+
+  searchPanel.appendChild(el('div', {class: 'geo-search-row'}, [cityInput, radiusSelect, searchBtn]));
+  controls.appendChild(searchPanel);
+
+  if (state.mapSearchLabel) {
+    const pinIcon2 = document.createElement('span');
+    pinIcon2.innerHTML = iconSvg('pin', 14);
+    pinIcon2.style.cssText = 'display:inline-flex; vertical-align:-2px; margin-right:5px;';
+    controls.appendChild(el('div', {class: 'map-floating-label'}, [
+      pinIcon2,
+      document.createTextNode(state.mapSearchLabel + ' — ' + state.mapSearchRadius + ' km'),
+      el('span', {text: ' ✕', style: 'color:var(--pink); cursor:pointer; font-weight:700; margin-left:8px;', onclick: () => {
+        state.mapSearchCenter = null; state.mapSearchLabel = ''; state.mapSearchCity = ''; render();
+      }})
+    ]));
+  }
+
+  wrap.appendChild(controls);
+
+  const mapCanvas = el('div', {class: 'map-canvas'}, [el('div', {class: 'event-map-loading', text: 'Chargement de la carte…'})]);
+  wrap.appendChild(mapCanvas);
+  setTimeout(() => renderFranceMap(mapCanvas), 0);
+
+  if (state.profile.role === 'organizer' && (state.profile.isCreator || state.profile.verified === true)) {
+    wrap.appendChild(el('button', {class: 'fab', text: '+', onclick: () => { state.screen = 'create'; render(); }}));
+  }
+
+  return wrap;
+
+  async function runGeoSearch() {
+    const city = state.mapSearchCity.trim();
+    if (!city) { state.mapSearchCenter = null; state.mapSearchLabel = ''; state.mapSearchError = ''; render(); return; }
+    state.mapSearching = true; state.mapSearchError = ''; render();
+    const coords = await geocodePlace(city + ', France');
+    state.mapSearching = false;
+    if (!coords) { state.mapSearchError = 'Ville introuvable.'; render(); return; }
+    state.mapSearchCenter = coords;
+    state.mapSearchLabel = city;
+    render();
+  }
+}
+
+async function renderFranceMap(container) {
+  try {
+    await ensureMapLibreLoaded();
+  } catch (e) {
+    container.innerHTML = '<div class="event-map-loading">Carte indisponible (connexion au service de carte impossible)</div>';
+    return;
+  }
+  let events = state.events.filter(ev => !isEventHidden(ev) && ev.status !== 'cancelled');
+
+  const toGeocode = events.filter(ev => typeof ev.lat !== 'number' || typeof ev.lng !== 'number');
+  if (toGeocode.length) {
+    await Promise.all(toGeocode.map(async (ev) => {
+      const coords = await geocodePlace(eventQueryString(ev));
+      if (coords) {
+        ev.lat = coords.lat; ev.lng = coords.lng;
+        updateDoc(doc(db, 'events', ev.id), { lat: coords.lat, lng: coords.lng }).catch(() => {});
+      }
+    }));
+  }
+  events = events.filter(ev => typeof ev.lat === 'number' && typeof ev.lng === 'number');
+
+  if (state.mapSearchCenter) {
+    const c = state.mapSearchCenter;
+    events = events.filter(ev => haversineKm(c.lat, c.lng, ev.lat, ev.lng) <= state.mapSearchRadius);
+  }
+
+  if (!container.isConnected) return;
+  container.innerHTML = '';
+  const map = new maplibregl.Map({
+    container, style: MAP_STYLE_URL, center: [2.3, 46.6], zoom: 6, attributionControl: true
+  });
+  map.addControl(new maplibregl.NavigationControl({showCompass: false}), 'top-right');
+
+  function markerSizeFor(ev) {
+    const n = (ev.attendees || []).length;
+    return Math.min(58, 26 + n * 3);
+  }
+
+  map.on('load', () => {
+    if (state.mapSearchCenter) {
+      map.addSource('search-radius', { type: 'geojson', data: circleGeoJSON(state.mapSearchCenter.lat, state.mapSearchCenter.lng, state.mapSearchRadius) });
+      map.addLayer({ id: 'search-radius-fill', type: 'fill', source: 'search-radius', paint: { 'fill-color': '#2fd9ff', 'fill-opacity': 0.06 } });
+      map.addLayer({ id: 'search-radius-line', type: 'line', source: 'search-radius', paint: { 'line-color': '#2fd9ff', 'line-width': 1 } });
+    }
+
+    const markerCoords = [];
+    events.forEach(ev => {
+      const size = markerSizeFor(ev);
+      const popupContent = el('div', {style: 'min-width:170px;'}, [
+        el('div', {style: 'font-family:Orbitron,sans-serif;font-size:11px;color:#2fd9ff;margin-bottom:4px;letter-spacing:0.05em;', text: formatEventDate(ev.dateISO) + ' · ' + ev.time}),
+        el('div', {style: 'font-weight:700;margin-bottom:4px;', text: ev.title}),
+        el('div', {style: 'font-size:12px;color:rgba(245,243,248,0.6);margin-bottom:8px;', text: ev.place + ' · ' + (ev.attendees || []).length + ' inscrit·e·s'}),
+        el('span', {style: 'color:#2fd9ff;font-weight:700;cursor:pointer;font-size:13px;', text: 'Voir la soirée →', onclick: () => { state.currentEventId = ev.id; state.screen = 'detail'; render(); }})
+      ]);
+      const popup = new maplibregl.Popup({offset: Math.round(size * 1.3), closeButton: true}).setDOMContent(popupContent);
+      new maplibregl.Marker({element: pinElement(size), anchor: 'bottom'}).setLngLat([ev.lng, ev.lat]).setPopup(popup).addTo(map);
+      markerCoords.push([ev.lng, ev.lat]);
+    });
+
+    if (markerCoords.length === 0) {
+      const emptyEl = document.createElement('div');
+      emptyEl.textContent = state.mapSearchCenter ? 'Aucune soirée dans ce rayon.' : 'Aucune soirée à afficher.';
+      emptyEl.style.cssText = 'position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:5; background:rgba(6,6,8,0.85); color:rgba(245,243,248,0.75); padding:10px 16px; border-radius:8px; font-size:13px; font-weight:600; border:1px solid var(--line); pointer-events:none;';
+      container.appendChild(emptyEl);
+    }
+
+    // La caméra "vole" en douceur vers la zone recherchée (ou vers l'ensemble des soirées)
+    setTimeout(() => {
+      map.resize();
+      if (state.mapSearchCenter) {
+        map.flyTo({ center: [state.mapSearchCenter.lng, state.mapSearchCenter.lat], zoom: 11, duration: 1500 });
+      } else if (markerCoords.length) {
+        const lngs = markerCoords.map(c => c[0]), lats = markerCoords.map(c => c[1]);
+        map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 60, maxZoom: 13, duration: 1500 });
+      }
+    }, 60);
+  });
+}
+
+// ---------- DETAIL ----------
+
+function DetailScreen() {
+  const ev = state.events.find(e => e.id === state.currentEventId);
+  if (!ev) {
+    const screen = el('div', {class: 'screen'});
+    screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'feed'; render(); }}));
+    screen.appendChild(el('div', {class: 'empty', text: 'Cette soirée n\'existe plus.'}));
+    return screen;
+  }
+  if (!state.countedViews.has(ev.id)) {
+    state.countedViews.add(ev.id);
+    updateDoc(doc(db, 'events', ev.id), { views: (ev.views||0) + 1 }).catch(() => {});
+  }
+  const attendees = ev.attendees || [];
+  const going = attendees.some(a => a.uid === state.user.uid);
+  const isFav = (state.profile.favorites || []).includes(ev.id);
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'feed'; render(); }}));
+  if (ev.status === 'cancelled') screen.appendChild(el('div', {class: 'cancelled-badge', text: 'Annulée'}));
+  screen.appendChild(el('div', {class: 'event-date', text: formatEventDate(ev.dateISO) + ' · ' + ev.time}));
+  screen.appendChild(el('div', {class: 'detail-title', text: ev.title}));
+  screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Lieu'}), el('div', {}, ev.address ? [el('div', {text: ev.place}), el('div', {text: ev.address, style: 'color:var(--muted); font-size:13px; margin-top:2px;'})] : [document.createTextNode(ev.place)])]));
+  const organizerNameSpan = el('span', {text: 'Voir le profil →', style: 'color:var(--blue); cursor:pointer; font-weight:600;'});
+  organizerNameSpan.onclick = async () => {
+    try {
+      const snap = await getDoc(doc(db, 'users', ev.organizerUid));
+      state.viewedProfile = snap.exists() ? snap.data() : null;
+      state.viewedProfileUid = ev.organizerUid;
+    } catch(e) { state.viewedProfile = null; }
+    state.screen = 'other-profile';
+    render();
+  };
+  screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Organisé par'}), organizerNameSpan]));
+  screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Département'}), el('div', {text: ev.dept || '—'})]));
+  screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Prix'}), el('div', {text: ev.price ? ev.price + ' €' : 'Gratuit'})]));
+  screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Participants'}), el('div', {text: attendees.length + ' inscrit·e·s'})]));
+  screen.appendChild(el('div', {class: 'detail-desc', text: ev.desc}));
+
+  const mapContainer = el('div', {class: 'event-map'}, [el('div', {class: 'event-map-loading', text: 'Localisation…'})]);
+  screen.appendChild(mapContainer);
+  setTimeout(() => initEventMap(mapContainer, ev), 0);
+
+  const actionRow = el('div', {style: 'display:flex; gap:10px; margin-bottom:16px;'});
+  actionRow.appendChild(el('button', {
+    class: 'secondary', text: isFav ? '♥ Favori' : '♡ Ajouter aux favoris', style: 'margin-top:0;',
+    onclick: async () => {
+      const favs = state.profile.favorites || [];
+      const newFavs = isFav ? favs.filter(id => id !== ev.id) : [...favs, ev.id];
+      state.profile.favorites = newFavs;
+      render();
+      try { await updateDoc(doc(db, 'users', state.user.uid), { favorites: newFavs }); } catch(err) {}
+    }
+  }));
+  actionRow.appendChild(el('button', {
+    class: 'secondary', text: '↗ Partager', style: 'margin-top:0;',
+    onclick: async () => {
+      const url = window.location.origin + window.location.pathname + '?event=' + ev.id;
+      if (navigator.share) {
+        try { await navigator.share({ title: ev.title, text: 'Découvre cette soirée sur Pulse', url }); } catch(e) {}
+      } else {
+        try { await navigator.clipboard.writeText(url); flashSaved(); } catch(e) {}
+      }
+    }
+  }));
+  screen.appendChild(actionRow);
+
+  screen.appendChild(el('button', {
+    class: 'secondary', style: 'margin-top:0; margin-bottom:16px;',
+    onclick: () => downloadICS(ev)
+  }, iconLabel('calendar', 'Ajouter à mon calendrier', 14)));
+
+  const attList = el('div', {class: 'attendee-list'});
+  attList.appendChild(el('h4', {text: 'Qui vient'}));
+  if (attendees.length === 0) {
+    attList.appendChild(el('div', {class: 'empty', text: "Personne pour l'instant."}));
+  } else {
+    attendees.forEach(a => attList.appendChild(el('span', {
+      class: 'attendee-chip', text: a.name,
+      onclick: async () => {
+        try {
+          const snap = await getDoc(doc(db, 'users', a.uid));
+          state.viewedProfile = snap.exists() ? snap.data() : null;
+          state.viewedProfileUid = a.uid;
+        } catch(e) { state.viewedProfile = null; }
+        state.screen = 'other-profile';
+        render();
+      }
+    })));
+  }
+  screen.appendChild(attList);
+
+  if (state.user.uid === ev.organizerUid) {
+    const manageRow = el('div', {style: 'display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap;'});
+    manageRow.appendChild(el('button', {class: 'secondary', text: 'Modifier', style: 'margin-top:0; flex:1;', onclick: () => { state.screen = 'edit'; render(); }}));
+    manageRow.appendChild(el('button', {class: 'secondary', text: 'Dupliquer', style: 'margin-top:0; flex:1;', onclick: () => { state.screen = 'duplicate'; render(); }}));
+    screen.appendChild(manageRow);
+    screen.appendChild(el('button', {
+      class: 'secondary', text: 'Exporter les participants (CSV)', style: 'margin-top:0; margin-bottom:10px;',
+      onclick: () => downloadCSV(ev)
+    }));
+    if (ev.status !== 'cancelled') {
+      screen.appendChild(el('button', {
+        class: 'secondary danger-outline', text: 'Annuler la soirée', style: 'margin-top:0; margin-bottom:10px;',
+        onclick: async () => {
+          const reason = prompt("Message pour les inscrits (raison de l'annulation) :", '');
+          if (reason === null) return;
+          try {
+            await updateDoc(doc(db, 'events', ev.id), { status: 'cancelled', cancelReason: reason || "L'organisateur a annulé cette soirée." });
+            state.screen = 'feed'; render();
+          } catch(e) { console.error(e); }
+        }
+      }));
+    }
+    screen.appendChild(el('button', {
+      class: 'secondary danger-outline', text: 'Supprimer définitivement', style: 'margin-top:0;',
+      onclick: async () => {
+        if (!confirm('Supprimer définitivement cette soirée ?')) return;
+        try { await deleteDoc(doc(db, 'events', ev.id)); state.screen = 'feed'; render(); } catch(e) { console.error(e); }
+      }
+    }));
+  }
+
+  if (state.profile.role === 'dancer' && ev.status !== 'cancelled') {
+    screen.appendChild(el('button', {
+      class: 'primary' + (going ? ' going' : ''),
+      text: going ? '✓ Tu y vas — annuler' : "J'y vais",
+      onclick: async () => {
+        let newAttendees;
+        if (going) newAttendees = attendees.filter(a => a.uid !== state.user.uid);
+        else newAttendees = [...attendees, { uid: state.user.uid, name: state.profile.name }];
+        ev.attendees = newAttendees;
+        render();
+        try { await updateDoc(doc(db, 'events', ev.id), { attendees: newAttendees }); flashSaved(); } catch (err) { console.error('Échec RSVP', err); }
+      }
+    }));
+  }
+  if (state.user.uid !== ev.organizerUid) {
+    screen.appendChild(el('button', {
+      class: 'secondary danger-outline', text: 'Signaler cette soirée', style: 'margin-top:10px;',
+      onclick: () => submitReport('event', ev.id, ev.title)
+    }));
+  }
+  return screen;
+}
+
+function downloadCSV(ev) {
+  const rows = [['Prénom'], ...(ev.attendees||[]).map(a => [a.name])];
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'participants-' + (ev.title||'soiree').replace(/[^a-z0-9]/gi,'-') + '.csv';
+  a.click();
+}
+
+function downloadICS(ev) {
+  const start = (ev.dateISO||'').replace(/-/g,'') + 'T' + (ev.time||'20:00').replace(':','') + '00';
+  const ics = ['BEGIN:VCALENDAR','VERSION:2.0','BEGIN:VEVENT',
+    'SUMMARY:' + (ev.title||'Soirée Pulse'),
+    'LOCATION:' + (ev.place||''),
+    'DESCRIPTION:' + (ev.desc||'').replace(/\n/g,' '),
+    'DTSTART:' + start,
+    'END:VEVENT','END:VCALENDAR'].join('\n');
+  const blob = new Blob([ics], {type: 'text/calendar;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (ev.title||'soiree').replace(/[^a-z0-9]/gi,'-') + '.ics';
+  a.click();
+}
+
+// ---------- MY EVENTS / HISTORY ----------
+
+function MyEventsScreen() {
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'profile'; render(); }}));
+  screen.appendChild(el('h1', {text: 'Mes soirées'}));
+  const mine = state.events.filter(ev => ev.organizerUid === state.user.uid).sort((a,b) => ((b.dateISO||'')+(b.time||'')).localeCompare((a.dateISO||'')+(a.time||'')));
+  if (mine.length === 0) {
+    screen.appendChild(el('div', {class: 'empty', text: "Tu n'as pas encore créé de soirée."}));
+  } else {
+    mine.forEach(ev => {
+      const hidden = isEventHidden(ev);
+      const card = el('div', { class: 'event-card', onclick: () => { state.currentEventId = ev.id; state.screen = 'detail'; render(); } }, [
+        el('div', {class: 'event-date', text: formatEventDate(ev.dateISO) + ' · ' + ev.time}),
+        el('div', {class: 'event-title', text: ev.title}),
+        el('div', {class: 'event-price', text: (ev.attendees||[]).length + ' inscrit·e·s · ' + (ev.views||0) + ' vues'})
+      ]);
+      if (ev.status === 'cancelled') card.insertBefore(el('div', {class: 'cancelled-badge', text: 'Annulée'}), card.firstChild);
+      else if (hidden) card.insertBefore(el('div', {class: 'dept-badge', text: 'Passée'}), card.firstChild);
+      screen.appendChild(card);
+    });
+  }
+  return screen;
+}
+
+// ---------- ADMIN ----------
+
+const ADMIN_PAGE_SIZE = 10;
+
+async function loadPendingReportsCount() {
+  try {
+    const snap = await getCountFromServer(query(collection(db, 'reports'), where('status', '==', 'pending')));
+    state.pendingReportsCount = snap.data().count;
+  } catch (e) {
+    state.pendingReportsCount = 0;
+  }
+  render();
+}
+
+async function loadAdminStats() {
+  try {
+    const usersCol = collection(db, 'users');
+    const [totalSnap, dancersSnap, organizersSnap, verifiedSnap, bannedSnap] = await Promise.all([
+      getCountFromServer(usersCol),
+      getCountFromServer(query(usersCol, where('role', '==', 'dancer'))),
+      getCountFromServer(query(usersCol, where('role', '==', 'organizer'))),
+      getCountFromServer(query(usersCol, where('role', '==', 'organizer'), where('verified', '==', true))),
+      getCountFromServer(query(usersCol, where('banned', '==', true)))
+    ]);
+    state.adminStats = {
+      totalUsers: totalSnap.data().count,
+      dancers: dancersSnap.data().count,
+      organizers: organizersSnap.data().count,
+      verifiedOrganizers: verifiedSnap.data().count,
+      banned: bannedSnap.data().count
+    };
+  } catch (e) {
+    state.adminStats = null;
+  }
+  render();
+}
+
+async function loadAdminReports() {
+  try {
+    const snap = await getDocs(query(collection(db, 'reports'), where('status', '==', 'pending')));
+    state.adminReports = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  } catch (e) {
+    state.adminReports = [];
+  }
+  render();
+}
+
+async function loadAdminOrganizers() {
+  try {
+    const snap = await getDocs(query(collection(db, 'users'), where('role', '==', 'organizer'), where('verified', '==', false)));
+    state.adminOrganizers = snap.docs.map(d => ({ uid: d.id, ...d.data() })).filter(u => u.banned !== true);
+  } catch (e) {
+    state.adminOrganizers = [];
+  }
+  render();
+}
+
+async function loadAdminRolePage(role, reset) {
+  const key = role === 'dancer' ? 'adminDancers' : 'adminOrgs';
+  const bucket = state[key];
+  if (reset) { bucket.items = []; bucket.lastDoc = null; bucket.hasMore = true; bucket.error = null; }
+  state.adminLoading = true;
+  render();
+  try {
+    const usersCol = collection(db, 'users');
+    const search = bucket.search.trim();
+    let q;
+    if (search) {
+      q = query(usersCol, where('role', '==', role), orderBy('name'), where('name', '>=', search), where('name', '<=', search + '\uf8ff'), limit(ADMIN_PAGE_SIZE));
+    } else if (bucket.lastDoc) {
+      q = query(usersCol, where('role', '==', role), orderBy('name'), startAfter(bucket.lastDoc), limit(ADMIN_PAGE_SIZE));
+    } else {
+      q = query(usersCol, where('role', '==', role), orderBy('name'), limit(ADMIN_PAGE_SIZE));
+    }
+    const snap = await getDocs(q);
+    const results = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    bucket.items = search ? results : [...bucket.items, ...results];
+    if (snap.docs.length) bucket.lastDoc = snap.docs[snap.docs.length - 1];
+    bucket.hasMore = !search && snap.docs.length === ADMIN_PAGE_SIZE;
+    bucket.error = null;
+  } catch (e) {
+    bucket.hasMore = false;
+    bucket.error = e.message || 'Erreur de chargement';
+  }
+  state.adminLoading = false;
+  render();
+}
+
+function AdminScreen() {
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'profile'; render(); }}));
+  screen.appendChild(el('h1', {text: 'Administration'}));
+
+  if (!state.profile.isCreator) {
+    screen.appendChild(el('div', {class: 'empty', text: "Accès réservé."}));
+    return screen;
+  }
+
+  if (state.adminStats === null) loadAdminStats();
+  if (state.adminOrganizers === null) loadAdminOrganizers();
+  if (state.adminReports === null) loadAdminReports();
+
+  // --- Tableau de bord (requêtes de comptage — rapide même avec des milliers de comptes) ---
+  screen.appendChild(el('h4', {text: "Vue d'ensemble", style: 'font-family:Orbitron,sans-serif; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:12px;'}));
+  if (!state.adminStats) {
+    screen.appendChild(el('div', {class: 'empty', text: 'Chargement des statistiques…', style: 'padding:14px 0;'}));
+  } else {
+    const s = state.adminStats;
+    const activeEvents = state.events.filter(ev => !isEventHidden(ev) && ev.status !== 'cancelled').length;
+    const cancelledEvents = state.events.filter(ev => ev.status === 'cancelled').length;
+    const totalRSVPs = state.events.reduce((sum, ev) => sum + (ev.attendees || []).length, 0);
+    const totalViews = state.events.reduce((sum, ev) => sum + (ev.views || 0), 0);
+    const statGrid = el('div', {class: 'stat-grid'});
+    const stat = (value, label, pink) => el('div', {class: 'stat-card' + (pink ? ' pink' : '')}, [
+      el('div', {class: 'stat-value', text: String(value)}),
+      el('div', {class: 'stat-label', text: label})
+    ]);
+    statGrid.appendChild(stat(s.totalUsers, 'Comptes créés'));
+    statGrid.appendChild(stat(state.events.length, 'Soirées créées (total)', true));
+    statGrid.appendChild(stat(s.dancers, 'Danseur·se·s'));
+    statGrid.appendChild(stat(s.organizers, 'Organisateur·rice·s', true));
+    statGrid.appendChild(stat(s.verifiedOrganizers + ' / ' + s.organizers, 'Organisateurs vérifiés'));
+    statGrid.appendChild(stat(activeEvents, 'Soirées actives', true));
+    statGrid.appendChild(stat(totalRSVPs, "Total RSVP (\"j'y vais\")"));
+    statGrid.appendChild(stat(totalViews, 'Vues cumulées', true));
+    statGrid.appendChild(stat(cancelledEvents, 'Soirées annulées'));
+    statGrid.appendChild(stat(s.banned, 'Comptes bloqués', true));
+    screen.appendChild(statGrid);
+  }
+
+  // --- Signalements en attente ---
+  screen.appendChild(el('h4', {text: 'Signalements en attente', style: 'font-family:Orbitron,sans-serif; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:12px;'}));
+  if (state.adminReports === null) {
+    screen.appendChild(el('div', {class: 'empty', text: 'Chargement…', style: 'padding:14px 0;'}));
+  } else if (state.adminReports.length === 0) {
+    screen.appendChild(el('div', {class: 'empty', text: 'Aucun signalement en attente.', style: 'padding:14px 0;'}));
+  } else {
+    state.adminReports.forEach(r => {
+      const row = el('div', {class: 'event-card'}, [
+        el('div', {class: 'cancelled-badge', text: r.type === 'user' ? 'Profil signalé' : 'Soirée signalée'}),
+        el('div', {class: 'event-title', text: r.targetName || '(sans nom)'}),
+        el('div', {class: 'event-meta', text: 'Signalé par ' + (r.reporterName || '?') + (r.reason ? ' — ' + r.reason : '')})
+      ]);
+      const actionRow = el('div', {style: 'display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;'});
+      actionRow.appendChild(el('button', {
+        class: 'secondary', text: 'Voir', style: 'margin-top:0; flex:1;',
+        onclick: () => {
+          if (r.type === 'event') { state.currentEventId = r.targetId; state.screen = 'detail'; }
+          else { state.viewedProfileUid = r.targetId; getDoc(doc(db, 'users', r.targetId)).then(snap => { state.viewedProfile = snap.exists() ? snap.data() : null; state.screen = 'other-profile'; render(); }); return; }
+          render();
+        }
+      }));
+      actionRow.appendChild(el('button', {
+        class: 'secondary', text: 'Marquer traité', style: 'margin-top:0; flex:1;',
+        onclick: async (e) => {
+          e.target.disabled = true;
+          try {
+            await updateDoc(doc(db, 'reports', r.id), { status: 'resolved' });
+            state.adminReports = state.adminReports.filter(x => x.id !== r.id);
+            if (typeof state.pendingReportsCount === 'number') state.pendingReportsCount = Math.max(0, state.pendingReportsCount - 1);
+            render();
+          } catch (err) { e.target.disabled = false; }
+        }
+      }));
+      row.appendChild(actionRow);
+      screen.appendChild(row);
+    });
+  }
+
+  // --- Organisateurs à vérifier (requête ciblée, ne charge jamais les danseurs) ---
+  screen.appendChild(el('h4', {text: 'Organisateurs à vérifier', style: 'font-family:Orbitron,sans-serif; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:12px;'}));
+  if (state.adminOrganizers === null) {
+    screen.appendChild(el('div', {class: 'empty', text: 'Chargement…', style: 'padding:14px 0;'}));
+  } else {
+    const pendingOrganizers = state.adminOrganizers.filter(u => u.verified !== true && u.banned !== true);
+    if (pendingOrganizers.length === 0) {
+      screen.appendChild(el('div', {class: 'empty', text: 'Aucun organisateur en attente.', style: 'padding:14px 0;'}));
+    } else {
+      pendingOrganizers.forEach(u => {
+        const row = el('div', {class: 'event-card'}, [
+          el('div', {class: 'event-title', text: u.name || '(sans nom)'}),
+          el('div', {class: 'event-meta', text: 'Organisateur·rice · en attente'})
+        ]);
+        row.appendChild(el('button', {
+          class: 'secondary', text: 'Vérifier', style: 'margin-top:10px;',
+          onclick: async (e) => {
+            e.target.disabled = true; e.target.textContent = 'Vérification…';
+            try {
+              await updateDoc(doc(db, 'users', u.uid), { verified: true });
+              u.verified = true;
+              state.adminStats = null;
+              render();
+            } catch (err) { e.target.disabled = false; e.target.textContent = 'Vérifier'; }
+          }
+        }));
+        screen.appendChild(row);
+      });
+    }
+  }
+
+  // --- Danseur·se·s et Organisateur·rice·s (deux listes séparées, paginées par 10, recherche par nom) ---
+  function renderUserRoleSection(role, label, bucketKey) {
+    const bucket = state[bucketKey];
+    screen.appendChild(el('h4', {text: label, style: 'font-family:Orbitron,sans-serif; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin:26px 0 12px;'}));
+
+    const searchInput = el('input', {placeholder: 'Rechercher un nom exact ou un début…', value: bucket.search});
+    searchInput.oninput = (e) => { bucket.search = e.target.value; };
+    searchInput.onkeydown = (e) => { if (e.key === 'Enter') loadAdminRolePage(role, true); };
+    screen.appendChild(searchInput);
+    screen.appendChild(el('button', {
+      class: 'secondary', text: state.adminLoading ? 'Recherche…' : 'Rechercher / Rafraîchir', style: 'margin-top:0; margin-bottom:16px;',
+      onclick: () => loadAdminRolePage(role, true)
+    }));
+
+    if (bucket.error) {
+      screen.appendChild(el('div', {class: 'error-msg', text: "Index Firestore manquant pour cette requête — vérifie la console du navigateur pour le lien de création automatique fourni par Firebase (une seule fois à faire)."}));
+    }
+
+    bucket.items.forEach(u => {
+      const banned = u.banned === true;
+      const row = el('div', {class: 'event-card'}, [
+        el('div', {class: 'event-title', text: (u.name || '(sans nom)') + (u.isCreator ? ' ★' : '')}),
+        el('div', {class: 'event-meta', text: label + (u.verified ? ' · vérifié' : '') + (banned ? ' · BLOQUÉ' : '')})
+      ]);
+      if (!u.isCreator) {
+        row.appendChild(el('button', {
+          class: 'secondary' + (banned ? '' : ' danger-outline'), text: banned ? 'Débloquer' : 'Bloquer', style: 'margin-top:10px;',
+          onclick: async (e) => {
+            e.target.disabled = true;
+            try {
+              await updateDoc(doc(db, 'users', u.uid), { banned: !banned });
+              u.banned = !banned;
+              state.adminStats = null;
+              render();
+            } catch (err) { e.target.disabled = false; }
+          }
+        }));
+      }
+      screen.appendChild(row);
+    });
+
+    if (bucket.items.length === 0 && !state.adminLoading && !bucket.error) {
+      screen.appendChild(el('div', {class: 'empty', text: 'Aucun résultat.', style: 'padding:14px 0;'}));
+    }
+    if (bucket.hasMore && !bucket.search.trim()) {
+      screen.appendChild(el('button', {
+        class: 'secondary', text: state.adminLoading ? 'Chargement…' : 'Charger plus (10)', style: 'margin-bottom:10px;',
+        onclick: () => loadAdminRolePage(role, false)
+      }));
+    }
+  }
+
+  if (state.adminDancers.items.length === 0 && state.adminDancers.hasMore && !state.adminLoading && !state.adminDancers.error) loadAdminRolePage('dancer', true);
+  if (state.adminOrgs.items.length === 0 && state.adminOrgs.hasMore && !state.adminLoading && !state.adminOrgs.error) loadAdminRolePage('organizer', true);
+
+  renderUserRoleSection('dancer', 'Danseur·se·s', 'adminDancers');
+  renderUserRoleSection('organizer', 'Organisateur·rice·s', 'adminOrgs');
+
+  // --- Toutes les soirées (modération) ---
+  screen.appendChild(el('h4', {text: 'Toutes les soirées', style: 'font-family:Orbitron,sans-serif; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin:26px 0 12px;'}));
+  const allEvents = state.events.slice().sort((a, b) => ((b.dateISO || '') + (b.time || '')).localeCompare((a.dateISO || '') + (a.time || '')));
+  if (allEvents.length === 0) {
+    screen.appendChild(el('div', {class: 'empty', text: 'Aucune soirée.', style: 'padding:14px 0;'}));
+  } else {
+    allEvents.forEach(ev => {
+      const row = el('div', {class: 'event-card'}, [
+        el('div', {class: 'event-date', text: formatEventDate(ev.dateISO) + ' · ' + ev.time}),
+        el('div', {class: 'event-title', text: ev.title}),
+        el('div', {class: 'event-meta', text: ev.place})
+      ]);
+      row.appendChild(el('button', {
+        class: 'secondary danger-outline', text: 'Supprimer', style: 'margin-top:10px;',
+        onclick: async () => {
+          if (!confirm('Supprimer définitivement "' + ev.title + '" ?')) return;
+          try { await deleteDoc(doc(db, 'events', ev.id)); render(); } catch (err) { console.error(err); }
+        }
+      }));
+      screen.appendChild(row);
+    });
+  }
+
+  return screen;
+}
+
+function HistoryScreen() {
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'profile'; render(); }}));
+  screen.appendChild(el('h1', {text: 'Historique'}));
+  const past = state.events.filter(ev => isEventHidden(ev) && (ev.attendees||[]).some(a => a.uid === state.user.uid))
+    .sort((a,b) => ((b.dateISO||'')+(b.time||'')).localeCompare((a.dateISO||'')+(a.time||'')));
+  if (past.length === 0) {
+    screen.appendChild(el('div', {class: 'empty', text: "Aucune soirée passée pour l'instant."}));
+  } else {
+    past.forEach(ev => {
+      screen.appendChild(el('div', {class: 'event-card'}, [
+        el('div', {class: 'event-date', text: formatEventDate(ev.dateISO) + ' · ' + ev.time}),
+        el('div', {class: 'event-title', text: ev.title}),
+        el('div', {class: 'event-meta', text: ev.place})
+      ]));
+    });
+  }
+  return screen;
+}
+
+// ---------- CREATE / EDIT / DUPLICATE ----------
+
+function EventFormScreen(existingEvent, mode) {
+  const isEdit = mode === 'edit';
+  const isDuplicate = mode === 'duplicate';
+  const screen = el('div', {class: 'screen'});
+  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = existingEvent ? 'detail' : 'feed'; render(); }}));
+  screen.appendChild(el('h1', {text: isEdit ? 'Modifier la soirée' : 'Nouvelle soirée'}));
+  if (!isEdit) screen.appendChild(el('p', {class: 'sub', text: 'Renseigne les infos, les danseurs verront ta soirée dans le flux.'}));
+
+  const titleInput = el('input', {placeholder: 'Titre de la soirée', maxlength: '60'});
+  const dateInput = el('input', {type: 'date'});
+  const timeInput = el('input', {type: 'time'});
+  const placeInput = el('input', {placeholder: 'Lieu (ex. La Salsatheque, Marseille)', maxlength: '80'});
+  const addressInput = el('input', {placeholder: 'Ex. 12 rue de la République, 13001 Marseille', maxlength: '150'});
+  const deptSelect = el('select', {});
+  deptSelect.appendChild(el('option', {text: 'Choisir un département', value: ''}));
+  DEPARTMENTS.forEach(d => deptSelect.appendChild(el('option', {text: d, value: d})));
+  const priceInput = el('input', {placeholder: 'Prix en € (laisser vide si gratuit)', type: 'number', min: '0'});
+  const descInput = el('textarea', {placeholder: 'Description', maxlength: '500'});
+
+  let localDanceStyles = existingEvent && existingEvent.danceStyles ? [...existingEvent.danceStyles] : [];
+
+  if (existingEvent) {
+    titleInput.value = existingEvent.title || '';
+    dateInput.value = isDuplicate ? '' : (existingEvent.dateISO || '');
+    timeInput.value = existingEvent.time || '';
+    placeInput.value = existingEvent.place || '';
+    addressInput.value = existingEvent.address || '';
+    deptSelect.value = existingEvent.dept || '';
+    priceInput.value = existingEvent.price || '';
+    descInput.value = existingEvent.desc || '';
+  }
+
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Titre'}), titleInput]));
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Date'}), dateInput]));
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Heure'}), timeInput]));
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Lieu'}), placeInput]));
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Adresse précise (recommandé)'}), addressInput]));
+  screen.appendChild(el('p', {class: 'sub', style: 'font-size:13px; margin-top:-12px; margin-bottom:16px;', text: "Numéro, rue et ville si possible — la soirée sera positionnée beaucoup plus précisément sur la carte. Sans ça, on se base sur le champ Lieu, moins fiable."}));
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Département'}), deptSelect]));
+  screen.appendChild(el('label', {text: 'Danse(s) au programme'}));
+  const danceWrap = el('div', {class: 'style-wrap'});
+  DANCE_STYLES.forEach(style => {
+    const active = localDanceStyles.includes(style);
+    const chip = el('span', {
+      class: 'style-chip' + (active ? ' active' : ''), text: style,
+      onclick: () => {
+        if (localDanceStyles.includes(style)) localDanceStyles = localDanceStyles.filter(s => s !== style);
+        else localDanceStyles.push(style);
+        chip.className = 'style-chip' + (localDanceStyles.includes(style) ? ' active' : '');
+      }
+    });
+    danceWrap.appendChild(chip);
+  });
+  screen.appendChild(danceWrap);
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Prix'}), priceInput]));
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Description'}), descInput]));
+  const formErrorBox = el('div', {});
+  screen.appendChild(formErrorBox);
+
+  const submitBtn = el('button', {
+    class: 'primary', text: isEdit ? 'Enregistrer les modifications' : 'Publier la soirée',
+    onclick: async () => {
+      if (!titleInput.value || !dateInput.value || !placeInput.value || !deptSelect.value) return;
+      if ([titleInput.value, placeInput.value, addressInput.value, descInput.value].some(containsBannedWord)) {
+        formErrorBox.innerHTML = '';
+        formErrorBox.appendChild(el('div', {class: 'error-msg', text: 'Un des champs contient des termes non autorisés. Merci de reformuler.'}));
+        return;
+      }
+      submitBtn.disabled = true;
+      submitBtn.textContent = isEdit ? 'Enregistrement…' : 'Publication…';
+      const payload = {
+        title: titleInput.value, dateISO: dateInput.value, time: timeInput.value || '',
+        place: placeInput.value, address: addressInput.value || '', dept: deptSelect.value, danceStyles: localDanceStyles,
+        price: priceInput.value ? Number(priceInput.value) : 0,
+        desc: descInput.value || ''
+      };
+      const coords = await geocodePlace(eventQueryString(payload));
+      if (coords) { payload.lat = coords.lat; payload.lng = coords.lng; }
+      try {
+        if (isEdit) {
+          await updateDoc(doc(db, 'events', existingEvent.id), payload);
+          state.screen = 'detail';
+        } else {
+          await addDoc(collection(db, 'events'), { ...payload, attendees: [], views: 0, status: 'active', organizerUid: state.user.uid, createdAt: Date.now() });
+          state.screen = 'feed';
+        }
+        render();
+      } catch (err) {
+        console.error('Échec enregistrement soirée', err);
+        submitBtn.disabled = false;
+        submitBtn.textContent = isEdit ? 'Enregistrer les modifications' : 'Publier la soirée';
+      }
+    }
+  });
+  screen.appendChild(submitBtn);
+  return screen;
+}
+
+function CreateScreen() { return EventFormScreen(null, 'create'); }
+function EditScreen() {
+  const ev = state.events.find(e => e.id === state.currentEventId);
+  if (!ev) { state.screen = 'feed'; render(); return el('div'); }
+  return EventFormScreen(ev, 'edit');
+}
+function DuplicateScreen() {
+  const ev = state.events.find(e => e.id === state.currentEventId);
+  if (!ev) { state.screen = 'feed'; render(); return el('div'); }
+  return EventFormScreen(ev, 'duplicate');
+}
+
+// Filet de sécurité anti-autofill blanc : détecte le remplissage auto via l'astuce d'animation CSS,
+// et force la couleur sombre en JS (contourne les cas où le CSS seul ne suffit pas selon le navigateur/OS).
+function forceDarkField(input) {
+  input.style.setProperty('background-color', '#17171f', 'important');
+  input.style.setProperty('color', 'var(--paper)', 'important');
+  input.style.setProperty('-webkit-text-fill-color', 'var(--paper)', 'important');
+}
+document.addEventListener('animationstart', (e) => {
+  if (e.animationName === 'onAutoFillStart' && e.target.tagName === 'INPUT') forceDarkField(e.target);
+}, true);
+document.addEventListener('input', (e) => {
+  if (e.target.tagName === 'INPUT') forceDarkField(e.target);
+}, true);
+document.addEventListener('focus', (e) => {
+  if (e.target.tagName === 'INPUT') forceDarkField(e.target);
+}, true);
+
+function isLightBackground(colorStr) {
+  const m = colorStr.match(/[\d.]+/g);
+  if (!m) return false;
+  const [r, g, b, a] = m.map(Number);
+  if (a !== undefined && a < 0.3) return false;
+  return (0.299 * r + 0.587 * g + 0.114 * b) > 170;
+}
+
+// Auto-guérison : si Samsung Pass (ou tout autre gestionnaire) éclaircit un champ
+// par un autre chemin que le DOM standard, on le détecte et on le corrige aussitôt.
+const styleWatcher = new MutationObserver((mutations) => {
+  mutations.forEach(m => {
+    if (m.target.tagName === 'INPUT' && isLightBackground(getComputedStyle(m.target).backgroundColor)) {
+      forceDarkField(m.target);
+    }
+  });
+});
+styleWatcher.observe(document.body, { attributes: true, attributeFilter: ['style'], subtree: true });
+
+// Filet ultime : vérifie et corrige uniquement les champs devenus clairs, en continu
+setInterval(() => {
+  document.querySelectorAll('input').forEach(input => {
+    if (isLightBackground(getComputedStyle(input).backgroundColor)) forceDarkField(input);
+  });
+}, 400);
+
+render();
+</script>
+</body>
+</html>
