@@ -16,8 +16,6 @@
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&family=Rajdhani:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
-<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js" defer></script>
 <style>
   :root {
     --bg: #060608;
@@ -1299,6 +1297,24 @@ function eventQueryString(ev) {
   return ev.place + (deptName ? ', ' + deptName : '') + ', France';
 }
 
+let mapLibreLoadPromise = null;
+function ensureMapLibreLoaded() {
+  if (window.maplibregl) return Promise.resolve();
+  if (mapLibreLoadPromise) return mapLibreLoadPromise;
+  mapLibreLoadPromise = new Promise((resolve, reject) => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css';
+    document.head.appendChild(link);
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('maplibre-load-failed'));
+    document.head.appendChild(script);
+  });
+  return mapLibreLoadPromise;
+}
+
 function pinIconHtml(size) {
   const h = Math.round(size * 1.3);
   return `<svg width="${size}" height="${h}" viewBox="0 0 24 32" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 0 4px #ff2fa8) drop-shadow(0 0 10px #ff2fa8) drop-shadow(0 0 16px #2fd9ff);">
@@ -1331,6 +1347,7 @@ async function initEventMap(container, ev) {
   if (!ev.place) { container.remove(); return; }
   container.innerHTML = '<div class="event-map-loading">Localisation…</div>';
   try {
+    await ensureMapLibreLoaded();
     let coords;
     if (typeof ev.lat === 'number' && typeof ev.lng === 'number') {
       coords = { lat: ev.lat, lng: ev.lng };
@@ -1423,6 +1440,12 @@ function MapFullScreen() {
 }
 
 async function renderFranceMap(container) {
+  try {
+    await ensureMapLibreLoaded();
+  } catch (e) {
+    container.innerHTML = '<div class="event-map-loading">Carte indisponible (connexion au service de carte impossible)</div>';
+    return;
+  }
   let events = state.events.filter(ev => !isEventHidden(ev) && ev.status !== 'cancelled');
 
   const toGeocode = events.filter(ev => typeof ev.lat !== 'number' || typeof ev.lng !== 'number');
@@ -1902,20 +1925,4 @@ function AdminScreen() {
     searchInput.onkeydown = (e) => { if (e.key === 'Enter') loadAdminRolePage(role, true); };
     screen.appendChild(searchInput);
     screen.appendChild(el('button', {
-      class: 'secondary', text: state.adminLoading ? 'Recherche…' : 'Rechercher / Rafraîchir', style: 'margin-top:0; margin-bottom:16px;',
-      onclick: () => loadAdminRolePage(role, true)
-    }));
-
-    if (bucket.error) {
-      screen.appendChild(el('div', {class: 'error-msg', text: "Index Firestore manquant pour cette requête — vérifie la console du navigateur pour le lien de création automatique fourni par Firebase (une seule fois à faire)."}));
-    }
-
-    bucket.items.forEach(u => {
-      const banned = u.banned === true;
-      const row = el('div', {class: 'event-card'}, [
-        el('div', {class: 'event-title', text: (u.name || '(sans nom)') + (u.isCreator ? ' ★' : '')}),
-        el('div', {class: 'event-meta', text: label + (u.verified ? ' · vérifié' : '') + (banned ? ' · BLOQUÉ' : '')})
-      ]);
-      if (!u.isCreator) {
-        row.appendChild(el('button', {
-          class: 'secondar
+      class: 'secondary', text: state.adminLoading ? 'Recherche…' : 'Rechercher / Rafraîchir', style: 'margin-t
