@@ -998,7 +998,7 @@ function FeedScreen() {
       }}),
       state.profile.isCreator ? el('span', {class: 'dept-badge', text: '★ Créateur·rice', style: 'margin-bottom:0'}) : null,
       el('div', {
-        class: 'role-pill', text: (state.profile.role === 'dancer' ? 'Danseur·se' : 'Organisateur·rice') + '  ⇄',
+        class: 'role-pill', text: 'Déconnexion',
         style: 'cursor:pointer', onclick: async () => { await signOut(auth); }
       })
     ])
