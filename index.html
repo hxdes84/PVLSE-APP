@@ -313,7 +313,7 @@ const LEGAL_TEXT = `POLITIQUE DE CONFIDENTIALITÉ
 
 Pulse (version alpha) collecte : ton email et mot de passe (pour ton compte), ton prénom, ton rôle, tes danses pratiquées, et selon ton usage, les soirées que tu crées ou auxquelles tu participes.
 
-Si tu le souhaites, tu peux également renseigner ton pseudo Instagram et/ou un lien vers ton profil Facebook sur ta page de profil. Ces deux champs sont entièrement optionnels, vides par défaut, et visibles uniquement par les autres utilisateurs de Pulse (par exemple les danseurs inscrits à une même soirée). Tu peux les modifier ou les supprimer à tout moment depuis ton profil.
+Si tu le souhaites, tu peux également renseigner ton pseudo Instagram sur ta page de profil. Ce champ est entièrement optionnel, vide par défaut, et visible uniquement par les autres utilisateurs de Pulse (par exemple les danseurs inscrits à une même soirée). Tu peux le modifier ou le supprimer à tout moment depuis ton profil.
 
 Ces données sont hébergées par Firebase (Google Cloud, Europe), conformes RGPD. Elles ne sont jamais vendues ni partagées à des fins commerciales.
 
@@ -871,10 +871,6 @@ function ProfileScreen() {
   const instaInput = el('input', {placeholder: '@ton_pseudo', maxlength: '40'});
   instaInput.value = state.profile.instagram || '';
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Instagram (optionnel)'}), instaInput]));
-
-  const fbInput = el('input', {placeholder: 'facebook.com/ton.profil', maxlength: '150'});
-  fbInput.value = state.profile.facebook || '';
-  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Facebook (optionnel)'}), fbInput]));
   screen.appendChild(el('p', {class: 'sub', style: 'font-size:13px; margin-top:-8px; margin-bottom:20px;', text: "Visible par les autres danseurs sur ton profil. Laisse vide si tu ne veux rien partager."}));
 
   screen.appendChild(el('div', {class: 'field'}, [
@@ -913,9 +909,8 @@ function ProfileScreen() {
       if (!name) return;
       btn.disabled = true; btn.textContent = 'Enregistrement…';
       const instagram = instaInput.value.trim().replace(/^@/, '');
-      const facebook = fbInput.value.trim();
-      const updated = { ...state.profile, name, danceStyles: localStyles, isCreator: localIsCreator, instagram, facebook };
-      await updateDoc(doc(db, 'users', state.user.uid), { name, danceStyles: localStyles, isCreator: localIsCreator, instagram, facebook });
+      const updated = { ...state.profile, name, danceStyles: localStyles, isCreator: localIsCreator, instagram };
+      await updateDoc(doc(db, 'users', state.user.uid), { name, danceStyles: localStyles, isCreator: localIsCreator, instagram });
       state.profile = updated;
       state.screen = 'feed';
       render();
@@ -950,21 +945,12 @@ function OtherProfileScreen() {
     p.danceStyles.forEach(s => wrap.appendChild(el('span', {class: 'style-chip active', text: s})));
     screen.appendChild(wrap);
   }
-  if (p.instagram || p.facebook) {
+  if (p.instagram) {
     const socialRow = el('div', {style: 'display:flex; gap:10px; margin-top:16px; margin-bottom:20px; flex-wrap:wrap;'});
-    if (p.instagram) {
-      socialRow.appendChild(el('span', {
-        class: 'style-chip', style: 'border-color:var(--pink-dim); color:var(--pink);',
-        onclick: () => window.open('https://instagram.com/' + p.instagram, '_blank')
-      }, iconLabel('instagram', '@' + p.instagram)));
-    }
-    if (p.facebook) {
-      const fbUrl = p.facebook.startsWith('http') ? p.facebook : 'https://' + p.facebook;
-      socialRow.appendChild(el('span', {
-        class: 'style-chip', style: 'border-color:var(--blue-dim); color:var(--blue);',
-        onclick: () => window.open(fbUrl, '_blank')
-      }, iconLabel('facebook', 'Facebook')));
-    }
+    socialRow.appendChild(el('span', {
+      class: 'style-chip', style: 'border-color:var(--pink-dim); color:var(--pink);',
+      onclick: () => window.open('https://instagram.com/' + p.instagram, '_blank')
+    }, iconLabel('instagram', '@' + p.instagram)));
     screen.appendChild(socialRow);
   }
   if (p.role === 'organizer') {
