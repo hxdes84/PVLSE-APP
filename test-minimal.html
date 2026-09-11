@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test Pulse</title>
+</head>
+<body style="background:#060608; color:#fff; font-family:sans-serif; padding:24px;">
+<div id="result">⏳ Test en cours...</div>
+
+<script>
+  setTimeout(function() {
+    var r = document.getElementById('result');
+    if (r.textContent.indexOf('⏳') === 0) {
+      r.textContent = '❌ ÉCHEC — le script module ne s\'est jamais lancé après 5 secondes. Le souci est dans l\'environnement (navigateur/réseau), pas dans le code de l\'appli principale.';
+      r.style.color = '#ff2fa8';
+    }
+  }, 5000);
+</script>
+
+<script type="module">
+  document.getElementById('result').textContent = '1/2 : le script module a démarré...';
+  try {
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    document.getElementById('result').textContent = '2/2 : ✅ SUCCÈS COMPLET — Firebase a bien été importé et initialisé. Le test minimal fonctionne parfaitement.';
+    document.getElementById('result').style.color = '#2fd9ff';
+  } catch (e) {
+    document.getElementById('result').textContent = '❌ Le script a démarré mais l\'import Firebase a échoué : ' + e.message;
+    document.getElementById('result').style.color = '#ff2fa8';
+  }
+</script>
+</body>
+</html>
