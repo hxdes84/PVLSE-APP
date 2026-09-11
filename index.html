@@ -1181,6 +1181,7 @@ function haversineKm(lat1, lon1, lat2, lon2) {
 }
 
 function eventQueryString(ev) {
+  if (ev.address && ev.address.trim()) return ev.address.trim() + ', France';
   const deptName = ev.dept ? ev.dept.split(' - ')[1] : '';
   return ev.place + (deptName ? ', ' + deptName : '') + ', France';
 }
@@ -1403,7 +1404,7 @@ function DetailScreen() {
   if (ev.status === 'cancelled') screen.appendChild(el('div', {class: 'cancelled-badge', text: 'Annulée'}));
   screen.appendChild(el('div', {class: 'event-date', text: formatEventDate(ev.dateISO) + ' · ' + ev.time}));
   screen.appendChild(el('div', {class: 'detail-title', text: ev.title}));
-  screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Lieu'}), el('div', {text: ev.place})]));
+  screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Lieu'}), el('div', {}, ev.address ? [el('div', {text: ev.place}), el('div', {text: ev.address, style: 'color:var(--muted); font-size:13px; margin-top:2px;'})] : [document.createTextNode(ev.place)])]));
   const organizerNameSpan = el('span', {text: 'Voir le profil →', style: 'color:var(--blue); cursor:pointer; font-weight:600;'});
   organizerNameSpan.onclick = async () => {
     try {
@@ -1605,6 +1606,7 @@ function EventFormScreen(existingEvent, mode) {
   const dateInput = el('input', {type: 'date'});
   const timeInput = el('input', {type: 'time'});
   const placeInput = el('input', {placeholder: 'Lieu (ex. La Salsatheque, Marseille)', maxlength: '80'});
+  const addressInput = el('input', {placeholder: 'Ex. 12 rue de la République, 13001 Marseille', maxlength: '150'});
   const deptSelect = el('select', {});
   deptSelect.appendChild(el('option', {text: 'Choisir un département', value: ''}));
   DEPARTMENTS.forEach(d => deptSelect.appendChild(el('option', {text: d, value: d})));
@@ -1618,6 +1620,7 @@ function EventFormScreen(existingEvent, mode) {
     dateInput.value = isDuplicate ? '' : (existingEvent.dateISO || '');
     timeInput.value = existingEvent.time || '';
     placeInput.value = existingEvent.place || '';
+    addressInput.value = existingEvent.address || '';
     deptSelect.value = existingEvent.dept || '';
     priceInput.value = existingEvent.price || '';
     descInput.value = existingEvent.desc || '';
@@ -1627,6 +1630,8 @@ function EventFormScreen(existingEvent, mode) {
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Date'}), dateInput]));
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Heure'}), timeInput]));
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Lieu'}), placeInput]));
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Adresse précise (recommandé)'}), addressInput]));
+  screen.appendChild(el('p', {class: 'sub', style: 'font-size:13px; margin-top:-12px; margin-bottom:16px;', text: "Numéro, rue et ville si possible — la soirée sera positionnée beaucoup plus précisément sur la carte. Sans ça, on se base sur le champ Lieu, moins fiable."}));
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Département'}), deptSelect]));
   screen.appendChild(el('label', {text: 'Danse(s) au programme'}));
   const danceWrap = el('div', {class: 'style-wrap'});
@@ -1654,7 +1659,7 @@ function EventFormScreen(existingEvent, mode) {
       submitBtn.textContent = isEdit ? 'Enregistrement…' : 'Publication…';
       const payload = {
         title: titleInput.value, dateISO: dateInput.value, time: timeInput.value || '',
-        place: placeInput.value, dept: deptSelect.value, danceStyles: localDanceStyles,
+        place: placeInput.value, address: addressInput.value || '', dept: deptSelect.value, danceStyles: localDanceStyles,
         price: priceInput.value ? Number(priceInput.value) : 0,
         desc: descInput.value || ''
       };
