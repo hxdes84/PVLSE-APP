@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test 2</title>
+</head>
+<body style="background:#060608; color:#fff; font-family:sans-serif; padding:24px;">
+<div id="result">⏳ Test en cours...</div>
+
+<script>
+  setTimeout(function() {
+    var r = document.getElementById('result');
+    if (r.textContent.indexOf('⏳') === 0) {
+      r.textContent = '❌ ÉCHEC — bloqué avec les 3 imports statiques comme dans la vraie appli.';
+      r.style.color = '#ff2fa8';
+    }
+  }, 5000);
+</script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, setPersistence, browserLocalPersistence, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, getDocs, getCountFromServer, collection, addDoc, onSnapshot, updateDoc, deleteDoc, query, where, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+document.getElementById('result').textContent = '✅ SUCCÈS — les 3 imports statiques (app + auth + firestore) fonctionnent tous ensemble, exactement comme dans la vraie appli.';
+document.getElementById('result').style.color = '#2fd9ff';
+</script>
+</body>
+</html>
