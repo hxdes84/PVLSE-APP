@@ -240,6 +240,14 @@
   }
   .stat-card.pink .stat-value { color: var(--pink); text-shadow: 0 0 12px rgba(255,47,168,0.5); }
   .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+
+  .notif-badge {
+    position: absolute; top: -6px; right: -6px; background: var(--pink); color: #0a0510;
+    font-size: 10px; font-weight: 800; min-width: 16px; height: 16px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; padding: 0 4px;
+    box-shadow: 0 0 8px rgba(255,47,168,0.7); line-height: 1;
+  }
+  .badge-anchor { position: relative; display: inline-flex; }
   .map-canvas { flex: 1; position: relative; }
   .map-floating-controls {
     position: absolute; top: max(14px, env(safe-area-inset-top)); left: 14px; right: 14px; z-index: 620;
@@ -282,7 +290,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, setPersistence, browserLocalPersistence, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, getDocs, collection, addDoc, onSnapshot, updateDoc, deleteDoc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, getDocs, getCountFromServer, collection, addDoc, onSnapshot, updateDoc, deleteDoc, query, where, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyC4kEGp0Z-u1fPWkbprJLOqprqyveDec0E",
@@ -303,6 +311,27 @@ const MAP_STYLE_ID = "01a08b63-507e-7f12-82db-8b95441499bc";
 const MAP_STYLE_URL = `https://api.maptiler.com/maps/${MAP_STYLE_ID}/style.json?key=${MAPTILER_KEY}`;
 
 const DANCE_STYLES = ["Bachata", "Salsa", "Kizomba", "West Coast Swing", "Zouk", "Tango", "Autre"];
+
+const BANNED_WORDS = [
+  "encule","enculé","enculee","enculee","nique","niquer","niquez","salope","salopes","pute","putes",
+  "connard","connasse","batard","batarde","fdp","ntm","pd","pede","pd","negre","negro","bougnoule",
+  "youpin","chinetoque","bicot","raton","sale race","sale arabe","sale noir","sale juif","hitler","nazi",
+  "viol","violeur","pedophile","pedo","sexe","penis","vagin","bite","chatte","couille","branler",
+  "merde","chiotte","batard","enfoire","tarlouze","tapette","gouine","suceuse","suceur"
+];
+
+function normalizeForFilter(text) {
+  return (text || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function containsBannedWord(text) {
+  if (!text) return false;
+  const normalized = normalizeForFilter(text);
+  return BANNED_WORDS.some(w => normalized.includes(normalizeForFilter(w)));
+}
 const DEPARTMENTS = [
   "01 - Ain","02 - Aisne","03 - Allier","04 - Alpes-de-Haute-Provence","05 - Hautes-Alpes","06 - Alpes-Maritimes",
   "07 - Ardèche","08 - Ardennes","09 - Ariège","10 - Aube","11 - Aude","12 - Aveyron","13 - Bouches-du-Rhône",
@@ -409,7 +438,12 @@ let state = {
   mapSearchLabel: '',
   mapSearching: false,
   mapSearchError: '',
-  adminUsers: null,
+  adminStats: null,
+  adminOrganizers: null,
+  adminReports: null,
+  pendingReportsCount: null,
+  adminDancers: { items: [], lastDoc: null, hasMore: true, search: '', error: null },
+  adminOrgs: { items: [], lastDoc: null, hasMore: true, search: '', error: null },
   adminLoading: false
 };
 
@@ -727,6 +761,7 @@ function SignupScreen() {
       state.authError = '';
       const name = nameInput.value.trim();
       if (!name) { state.authError = 'Renseigne ton prénom.'; render(); return; }
+      if (containsBannedWord(name)) { state.authError = "Ce prénom contient des termes non autorisés."; render(); return; }
       if (!emailInput.value.trim() || passInput.value.length < 6) { state.authError = 'Email valide et mot de passe de 6 caractères minimum.'; render(); return; }
       if (!state.pendingRole) { state.authError = 'Choisis si tu es danseur·se ou organisateur·rice.'; render(); return; }
       if (!legalCheckbox.checked) { state.authError = "Merci d'accepter les mentions légales pour continuer."; render(); return; }
@@ -785,11 +820,14 @@ function CompleteProfileScreen() {
     styleWrap.appendChild(chip);
   });
   screen.appendChild(styleWrap);
+  const errorBox = el('div', {});
+  screen.appendChild(errorBox);
   const btn = el('button', {
     class: 'primary', text: 'Entrer dans Pulse',
     onclick: async () => {
       const name = nameInput.value.trim();
       if (!name || !state.pendingRole) return;
+      if (containsBannedWord(name)) { errorBox.innerHTML = ''; errorBox.appendChild(el('div', {class: 'error-msg', text: 'Ce prénom contient des termes non autorisés.'})); return; }
       btn.disabled = true; btn.textContent = 'Création…';
       const profile = { name, role: state.pendingRole, danceStyles: state.pendingStyles, favorites: [], verified: state.pendingRole === 'organizer' ? false : true };
       await setDoc(doc(db, 'users', state.user.uid), profile);
@@ -929,11 +967,14 @@ function ProfileScreen() {
   });
   screen.appendChild(el('div', {class: 'style-wrap'}, [creatorChip]));
 
+  const profileErrorBox = el('div', {});
+  screen.appendChild(profileErrorBox);
   const btn = el('button', {
     class: 'primary', text: 'Enregistrer',
     onclick: async () => {
       const name = nameInput.value.trim();
       if (!name) return;
+      if (containsBannedWord(name)) { profileErrorBox.innerHTML = ''; profileErrorBox.appendChild(el('div', {class: 'error-msg', text: 'Ce prénom contient des termes non autorisés.'})); return; }
       btn.disabled = true; btn.textContent = 'Enregistrement…';
       const instagram = instaInput.value.trim().replace(/^@/, '');
       const updated = { ...state.profile, name, danceStyles: localStyles, isCreator: localIsCreator, instagram };
@@ -953,9 +994,30 @@ function ProfileScreen() {
   }
   screen.appendChild(el('button', {class: 'secondary', text: 'Mentions légales & confidentialité', onclick: () => { state.screen = 'legal'; render(); }}));
   if (state.profile.isCreator) {
-    screen.appendChild(el('button', {class: 'secondary danger-outline', text: 'Administration', onclick: () => { state.adminUsers = null; state.screen = 'admin'; render(); }}));
+    screen.appendChild(el('span', {class: 'badge-anchor', style: 'display:block; margin-top:10px;'}, [
+      el('button', {class: 'secondary danger-outline', text: 'Administration', style: 'margin-top:0;', onclick: () => {
+        state.adminStats = null; state.adminOrganizers = null; state.adminReports = null;
+        state.adminDancers = { items: [], lastDoc: null, hasMore: true, search: '', error: null };
+        state.adminOrgs = { items: [], lastDoc: null, hasMore: true, search: '', error: null };
+        state.screen = 'admin'; render();
+      }}),
+      state.pendingReportsCount > 0 ? el('span', {class: 'notif-badge', text: String(state.pendingReportsCount)}) : null
+    ]));
   }
   return screen;
+}
+
+async function submitReport(type, targetId, targetName) {
+  const reason = prompt('Pourquoi signales-tu ' + (type === 'user' ? 'ce profil' : 'cette soirée') + ' ? (optionnel)', '');
+  if (reason === null) return;
+  try {
+    await addDoc(collection(db, 'reports'), {
+      type, targetId, targetName: targetName || '',
+      reporterUid: state.user.uid, reporterName: state.profile.name || '',
+      reason: reason || '', status: 'pending', createdAt: Date.now()
+    });
+    flashSaved();
+  } catch (e) { console.error('Échec du signalement', e); }
 }
 
 function OtherProfileScreen() {
@@ -998,20 +1060,28 @@ function OtherProfileScreen() {
       });
     }
   }
+  screen.appendChild(el('button', {
+    class: 'secondary danger-outline', text: 'Signaler ce profil', style: 'margin-top:24px;',
+    onclick: () => submitReport('user', state.viewedProfileUid, p.name)
+  }));
   return screen;
 }
 
 // ---------- FEED ----------
 
 function FeedScreen() {
+  if (state.profile.isCreator && state.pendingReportsCount === null) loadPendingReportsCount();
   const screen = el('div', {class: 'screen'});
   screen.appendChild(el('div', {class: 'topbar'}, [
     el('div', {class: 'brand', text: 'PULSE'}),
     el('div', {class: 'topbar-actions'}, [
-      el('button', {class: 'icon-btn', text: 'Profil', onclick: async () => {
-        try { await state.user.reload(); state.user = auth.currentUser; } catch(e) {}
-        state.screen = 'profile'; render();
-      }}),
+      el('span', {class: 'badge-anchor'}, [
+        el('button', {class: 'icon-btn', text: 'Profil', onclick: async () => {
+          try { await state.user.reload(); state.user = auth.currentUser; } catch(e) {}
+          state.screen = 'profile'; render();
+        }}),
+        (state.profile.isCreator && state.pendingReportsCount > 0) ? el('span', {class: 'notif-badge', text: String(state.pendingReportsCount)}) : null
+      ]),
       state.profile.isCreator ? el('span', {class: 'dept-badge', text: '★ Créateur·rice', style: 'margin-bottom:0'}) : null,
       el('div', {
         class: 'role-pill', text: 'Déconnexion',
@@ -1535,6 +1605,12 @@ function DetailScreen() {
       }
     }));
   }
+  if (state.user.uid !== ev.organizerUid) {
+    screen.appendChild(el('button', {
+      class: 'secondary danger-outline', text: 'Signaler cette soirée', style: 'margin-top:10px;',
+      onclick: () => submitReport('event', ev.id, ev.title)
+    }));
+  }
   return screen;
 }
 
@@ -1590,14 +1666,87 @@ function MyEventsScreen() {
 
 // ---------- ADMIN ----------
 
-async function loadAdminUsers() {
+const ADMIN_PAGE_SIZE = 10;
+
+async function loadPendingReportsCount() {
+  try {
+    const snap = await getCountFromServer(query(collection(db, 'reports'), where('status', '==', 'pending')));
+    state.pendingReportsCount = snap.data().count;
+  } catch (e) {
+    state.pendingReportsCount = 0;
+  }
+  render();
+}
+
+async function loadAdminStats() {
+  try {
+    const usersCol = collection(db, 'users');
+    const [totalSnap, dancersSnap, organizersSnap, verifiedSnap, bannedSnap] = await Promise.all([
+      getCountFromServer(usersCol),
+      getCountFromServer(query(usersCol, where('role', '==', 'dancer'))),
+      getCountFromServer(query(usersCol, where('role', '==', 'organizer'))),
+      getCountFromServer(query(usersCol, where('role', '==', 'organizer'), where('verified', '==', true))),
+      getCountFromServer(query(usersCol, where('banned', '==', true)))
+    ]);
+    state.adminStats = {
+      totalUsers: totalSnap.data().count,
+      dancers: dancersSnap.data().count,
+      organizers: organizersSnap.data().count,
+      verifiedOrganizers: verifiedSnap.data().count,
+      banned: bannedSnap.data().count
+    };
+  } catch (e) {
+    state.adminStats = null;
+  }
+  render();
+}
+
+async function loadAdminReports() {
+  try {
+    const snap = await getDocs(query(collection(db, 'reports'), where('status', '==', 'pending')));
+    state.adminReports = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  } catch (e) {
+    state.adminReports = [];
+  }
+  render();
+}
+
+async function loadAdminOrganizers() {
+  try {
+    const snap = await getDocs(query(collection(db, 'users'), where('role', '==', 'organizer'), where('verified', '==', false)));
+    state.adminOrganizers = snap.docs.map(d => ({ uid: d.id, ...d.data() })).filter(u => u.banned !== true);
+  } catch (e) {
+    state.adminOrganizers = [];
+  }
+  render();
+}
+
+async function loadAdminRolePage(role, reset) {
+  const key = role === 'dancer' ? 'adminDancers' : 'adminOrgs';
+  const bucket = state[key];
+  if (reset) { bucket.items = []; bucket.lastDoc = null; bucket.hasMore = true; bucket.error = null; }
   state.adminLoading = true;
   render();
   try {
-    const snap = await getDocs(collection(db, 'users'));
-    state.adminUsers = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    const usersCol = collection(db, 'users');
+    const search = bucket.search.trim();
+    let q;
+    if (search) {
+      q = query(usersCol, where('role', '==', role), orderBy('name'), where('name', '>=', search), where('name', '<=', search + '\uf8ff'), limit(ADMIN_PAGE_SIZE));
+    } else if (bucket.lastDoc) {
+      q = query(usersCol, where('role', '==', role), orderBy('name'), startAfter(bucket.lastDoc), limit(ADMIN_PAGE_SIZE));
+    } else {
+      q = query(usersCol, where('role', '==', role), orderBy('name'), limit(ADMIN_PAGE_SIZE));
+    }
+    const snap = await getDocs(q);
+    const results = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    bucket.items = search ? results : [...bucket.items, ...results];
+    if (snap.docs.length) bucket.lastDoc = snap.docs[snap.docs.length - 1];
+    bucket.hasMore = !search && snap.docs.length === ADMIN_PAGE_SIZE;
+    bucket.error = null;
   } catch (e) {
-    state.adminUsers = [];
+    bucket.hasMore = false;
+    bucket.error = e.message || 'Erreur de chargement';
   }
   state.adminLoading = false;
   render();
@@ -1613,287 +1762,167 @@ function AdminScreen() {
     return screen;
   }
 
-  if (state.adminUsers === null) {
-    if (!state.adminLoading) loadAdminUsers();
-    screen.appendChild(el('div', {class: 'empty', text: 'Chargement…'}));
-    return screen;
+  if (state.adminStats === null) loadAdminStats();
+  if (state.adminOrganizers === null) loadAdminOrganizers();
+  if (state.adminReports === null) loadAdminReports();
+  if (state.adminUserPage.length === 0 && state.adminHasMore && !state.adminLoading) loadAdminUserPage(true);
+
+  // --- Tableau de bord (requêtes de comptage — rapide même avec des milliers de comptes) ---
+  screen.appendChild(el('h4', {text: "Vue d'ensemble", style: 'font-family:Orbitron,sans-serif; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:12px;'}));
+  if (!state.adminStats) {
+    screen.appendChild(el('div', {class: 'empty', text: 'Chargement des statistiques…', style: 'padding:14px 0;'}));
+  } else {
+    const s = state.adminStats;
+    const activeEvents = state.events.filter(ev => !isEventHidden(ev) && ev.status !== 'cancelled').length;
+    const cancelledEvents = state.events.filter(ev => ev.status === 'cancelled').length;
+    const totalRSVPs = state.events.reduce((sum, ev) => sum + (ev.attendees || []).length, 0);
+    const totalViews = state.events.reduce((sum, ev) => sum + (ev.views || 0), 0);
+    const statGrid = el('div', {class: 'stat-grid'});
+    const stat = (value, label, pink) => el('div', {class: 'stat-card' + (pink ? ' pink' : '')}, [
+      el('div', {class: 'stat-value', text: String(value)}),
+      el('div', {class: 'stat-label', text: label})
+    ]);
+    statGrid.appendChild(stat(s.totalUsers, 'Comptes créés'));
+    statGrid.appendChild(stat(state.events.length, 'Soirées créées (total)', true));
+    statGrid.appendChild(stat(s.dancers, 'Danseur·se·s'));
+    statGrid.appendChild(stat(s.organizers, 'Organisateur·rice·s', true));
+    statGrid.appendChild(stat(s.verifiedOrganizers + ' / ' + s.organizers, 'Organisateurs vérifiés'));
+    statGrid.appendChild(stat(activeEvents, 'Soirées actives', true));
+    statGrid.appendChild(stat(totalRSVPs, "Total RSVP (\"j'y vais\")"));
+    statGrid.appendChild(stat(totalViews, 'Vues cumulées', true));
+    statGrid.appendChild(stat(cancelledEvents, 'Soirées annulées'));
+    statGrid.appendChild(stat(s.banned, 'Comptes bloqués', true));
+    screen.appendChild(statGrid);
   }
 
-  const users = state.adminUsers;
-  const pendingOrganizers = users.filter(u => u.role === 'organizer' && u.verified !== true && u.banned !== true);
-
-  // --- Tableau de bord ---
-  const totalDancers = users.filter(u => u.role === 'dancer').length;
-  const totalOrganizers = users.filter(u => u.role === 'organizer').length;
-  const verifiedOrganizers = users.filter(u => u.role === 'organizer' && u.verified === true).length;
-  const bannedCount = users.filter(u => u.banned === true).length;
-  const activeEvents = state.events.filter(ev => !isEventHidden(ev) && ev.status !== 'cancelled').length;
-  const cancelledEvents = state.events.filter(ev => ev.status === 'cancelled').length;
-  const totalRSVPs = state.events.reduce((sum, ev) => sum + (ev.attendees || []).length, 0);
-  const totalViews = state.events.reduce((sum, ev) => sum + (ev.views || 0), 0);
-
-  screen.appendChild(el('h4', {text: "Vue d'ensemble", style: 'font-family:Orbitron,sans-serif; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:12px;'}));
-  const statGrid = el('div', {class: 'stat-grid'});
-  const stat = (value, label, pink) => el('div', {class: 'stat-card' + (pink ? ' pink' : '')}, [
-    el('div', {class: 'stat-value', text: String(value)}),
-    el('div', {class: 'stat-label', text: label})
-  ]);
-  statGrid.appendChild(stat(users.length, 'Comptes créés'));
-  statGrid.appendChild(stat(state.events.length, 'Soirées créées (total)', true));
-  statGrid.appendChild(stat(totalDancers, 'Danseur·se·s'));
-  statGrid.appendChild(stat(totalOrganizers, 'Organisateur·rice·s', true));
-  statGrid.appendChild(stat(verifiedOrganizers + ' / ' + totalOrganizers, 'Organisateurs vérifiés'));
-  statGrid.appendChild(stat(activeEvents, 'Soirées actives', true));
-  statGrid.appendChild(stat(totalRSVPs, "Total RSVP (\"j'y vais\")"));
-  statGrid.appendChild(stat(totalViews, 'Vues cumulées', true));
-  statGrid.appendChild(stat(cancelledEvents, 'Soirées annulées'));
-  statGrid.appendChild(stat(bannedCount, 'Comptes bloqués', true));
-  screen.appendChild(statGrid);
-
-  // --- Organisateurs à vérifier ---
-  screen.appendChild(el('h4', {text: 'Organisateurs à vérifier', style: 'font-family:Orbitron,sans-serif; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:12px;'}));
-  if (pendingOrganizers.length === 0) {
-    screen.appendChild(el('div', {class: 'empty', text: 'Aucun organisateur en attente.', style: 'padding:14px 0;'}));
+  // --- Signalements en attente ---
+  screen.appendChild(el('h4', {text: 'Signalements en attente', style: 'font-family:Orbitron,sans-serif; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:12px;'}));
+  if (state.adminReports === null) {
+    screen.appendChild(el('div', {class: 'empty', text: 'Chargement…', style: 'padding:14px 0;'}));
+  } else if (state.adminReports.length === 0) {
+    screen.appendChild(el('div', {class: 'empty', text: 'Aucun signalement en attente.', style: 'padding:14px 0;'}));
   } else {
-    pendingOrganizers.forEach(u => {
+    state.adminReports.forEach(r => {
       const row = el('div', {class: 'event-card'}, [
-        el('div', {class: 'event-title', text: u.name || '(sans nom)'}),
-        el('div', {class: 'event-meta', text: 'Organisateur·rice · en attente'})
+        el('div', {class: 'cancelled-badge', text: r.type === 'user' ? 'Profil signalé' : 'Soirée signalée'}),
+        el('div', {class: 'event-title', text: r.targetName || '(sans nom)'}),
+        el('div', {class: 'event-meta', text: 'Signalé par ' + (r.reporterName || '?') + (r.reason ? ' — ' + r.reason : '')})
       ]);
-      row.appendChild(el('button', {
-        class: 'secondary', text: 'Vérifier', style: 'margin-top:10px;',
-        onclick: async (e) => {
-          e.target.disabled = true; e.target.textContent = 'Vérification…';
-          try {
-            await updateDoc(doc(db, 'users', u.uid), { verified: true });
-            u.verified = true;
-            render();
-          } catch (err) { e.target.disabled = false; e.target.textContent = 'Vérifier'; }
+      const actionRow = el('div', {style: 'display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;'});
+      actionRow.appendChild(el('button', {
+        class: 'secondary', text: 'Voir', style: 'margin-top:0; flex:1;',
+        onclick: () => {
+          if (r.type === 'event') { state.currentEventId = r.targetId; state.screen = 'detail'; }
+          else { state.viewedProfileUid = r.targetId; getDoc(doc(db, 'users', r.targetId)).then(snap => { state.viewedProfile = snap.exists() ? snap.data() : null; state.screen = 'other-profile'; render(); }); return; }
+          render();
         }
       }));
-      screen.appendChild(row);
-    });
-  }
-
-  // --- Tous les utilisateurs ---
-  screen.appendChild(el('h4', {text: 'Tous les utilisateurs', style: 'font-family:Orbitron,sans-serif; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin:26px 0 12px;'}));
-  users.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '')).forEach(u => {
-    const banned = u.banned === true;
-    const row = el('div', {class: 'event-card'}, [
-      el('div', {class: 'event-title', text: (u.name || '(sans nom)') + (u.isCreator ? ' ★' : '')}),
-      el('div', {class: 'event-meta', text: (u.role === 'dancer' ? 'Danseur·se' : 'Organisateur·rice') + (u.verified ? ' · vérifié' : '') + (banned ? ' · BLOQUÉ' : '')})
-    ]);
-    if (!u.isCreator) {
-      row.appendChild(el('button', {
-        class: 'secondary' + (banned ? '' : ' danger-outline'), text: banned ? 'Débloquer' : 'Bloquer', style: 'margin-top:10px;',
+      actionRow.appendChild(el('button', {
+        class: 'secondary', text: 'Marquer traité', style: 'margin-top:0; flex:1;',
         onclick: async (e) => {
           e.target.disabled = true;
           try {
-            await updateDoc(doc(db, 'users', u.uid), { banned: !banned });
-            u.banned = !banned;
+            await updateDoc(doc(db, 'reports', r.id), { status: 'resolved' });
+            state.adminReports = state.adminReports.filter(x => x.id !== r.id);
+            if (typeof state.pendingReportsCount === 'number') state.pendingReportsCount = Math.max(0, state.pendingReportsCount - 1);
             render();
           } catch (err) { e.target.disabled = false; }
         }
       }));
-    }
-    screen.appendChild(row);
-  });
-
-  // --- Toutes les soirées (modération) ---
-  screen.appendChild(el('h4', {text: 'Toutes les soirées', style: 'font-family:Orbitron,sans-serif; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin:26px 0 12px;'}));
-  const allEvents = state.events.slice().sort((a, b) => ((b.dateISO || '') + (b.time || '')).localeCompare((a.dateISO || '') + (a.time || '')));
-  if (allEvents.length === 0) {
-    screen.appendChild(el('div', {class: 'empty', text: 'Aucune soirée.', style: 'padding:14px 0;'}));
-  } else {
-    allEvents.forEach(ev => {
-      const row = el('div', {class: 'event-card'}, [
-        el('div', {class: 'event-date', text: formatEventDate(ev.dateISO) + ' · ' + ev.time}),
-        el('div', {class: 'event-title', text: ev.title}),
-        el('div', {class: 'event-meta', text: ev.place})
-      ]);
-      row.appendChild(el('button', {
-        class: 'secondary danger-outline', text: 'Supprimer', style: 'margin-top:10px;',
-        onclick: async () => {
-          if (!confirm('Supprimer définitivement "' + ev.title + '" ?')) return;
-          try { await deleteDoc(doc(db, 'events', ev.id)); render(); } catch (err) { console.error(err); }
-        }
-      }));
+      row.appendChild(actionRow);
       screen.appendChild(row);
     });
   }
 
-  return screen;
-}
-
-function HistoryScreen() {
-  const screen = el('div', {class: 'screen'});
-  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'profile'; render(); }}));
-  screen.appendChild(el('h1', {text: 'Historique'}));
-  const past = state.events.filter(ev => isEventHidden(ev) && (ev.attendees||[]).some(a => a.uid === state.user.uid))
-    .sort((a,b) => ((b.dateISO||'')+(b.time||'')).localeCompare((a.dateISO||'')+(a.time||'')));
-  if (past.length === 0) {
-    screen.appendChild(el('div', {class: 'empty', text: "Aucune soirée passée pour l'instant."}));
+  // --- Organisateurs à vérifier (requête ciblée, ne charge jamais les danseurs) ---
+  screen.appendChild(el('h4', {text: 'Organisateurs à vérifier', style: 'font-family:Orbitron,sans-serif; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:12px;'}));
+  if (state.adminOrganizers === null) {
+    screen.appendChild(el('div', {class: 'empty', text: 'Chargement…', style: 'padding:14px 0;'}));
   } else {
-    past.forEach(ev => {
-      screen.appendChild(el('div', {class: 'event-card'}, [
-        el('div', {class: 'event-date', text: formatEventDate(ev.dateISO) + ' · ' + ev.time}),
-        el('div', {class: 'event-title', text: ev.title}),
-        el('div', {class: 'event-meta', text: ev.place})
-      ]));
-    });
-  }
-  return screen;
-}
-
-// ---------- CREATE / EDIT / DUPLICATE ----------
-
-function EventFormScreen(existingEvent, mode) {
-  const isEdit = mode === 'edit';
-  const isDuplicate = mode === 'duplicate';
-  const screen = el('div', {class: 'screen'});
-  screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = existingEvent ? 'detail' : 'feed'; render(); }}));
-  screen.appendChild(el('h1', {text: isEdit ? 'Modifier la soirée' : 'Nouvelle soirée'}));
-  if (!isEdit) screen.appendChild(el('p', {class: 'sub', text: 'Renseigne les infos, les danseurs verront ta soirée dans le flux.'}));
-
-  const titleInput = el('input', {placeholder: 'Titre de la soirée', maxlength: '60'});
-  const dateInput = el('input', {type: 'date'});
-  const timeInput = el('input', {type: 'time'});
-  const placeInput = el('input', {placeholder: 'Lieu (ex. La Salsatheque, Marseille)', maxlength: '80'});
-  const addressInput = el('input', {placeholder: 'Ex. 12 rue de la République, 13001 Marseille', maxlength: '150'});
-  const deptSelect = el('select', {});
-  deptSelect.appendChild(el('option', {text: 'Choisir un département', value: ''}));
-  DEPARTMENTS.forEach(d => deptSelect.appendChild(el('option', {text: d, value: d})));
-  const priceInput = el('input', {placeholder: 'Prix en € (laisser vide si gratuit)', type: 'number', min: '0'});
-  const descInput = el('textarea', {placeholder: 'Description', maxlength: '500'});
-
-  let localDanceStyles = existingEvent && existingEvent.danceStyles ? [...existingEvent.danceStyles] : [];
-
-  if (existingEvent) {
-    titleInput.value = existingEvent.title || '';
-    dateInput.value = isDuplicate ? '' : (existingEvent.dateISO || '');
-    timeInput.value = existingEvent.time || '';
-    placeInput.value = existingEvent.place || '';
-    addressInput.value = existingEvent.address || '';
-    deptSelect.value = existingEvent.dept || '';
-    priceInput.value = existingEvent.price || '';
-    descInput.value = existingEvent.desc || '';
+    const pendingOrganizers = state.adminOrganizers.filter(u => u.verified !== true && u.banned !== true);
+    if (pendingOrganizers.length === 0) {
+      screen.appendChild(el('div', {class: 'empty', text: 'Aucun organisateur en attente.', style: 'padding:14px 0;'}));
+    } else {
+      pendingOrganizers.forEach(u => {
+        const row = el('div', {class: 'event-card'}, [
+          el('div', {class: 'event-title', text: u.name || '(sans nom)'}),
+          el('div', {class: 'event-meta', text: 'Organisateur·rice · en attente'})
+        ]);
+        row.appendChild(el('button', {
+          class: 'secondary', text: 'Vérifier', style: 'margin-top:10px;',
+          onclick: async (e) => {
+            e.target.disabled = true; e.target.textContent = 'Vérification…';
+            try {
+              await updateDoc(doc(db, 'users', u.uid), { verified: true });
+              u.verified = true;
+              state.adminStats = null;
+              render();
+            } catch (err) { e.target.disabled = false; e.target.textContent = 'Vérifier'; }
+          }
+        }));
+        screen.appendChild(row);
+      });
+    }
   }
 
-  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Titre'}), titleInput]));
-  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Date'}), dateInput]));
-  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Heure'}), timeInput]));
-  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Lieu'}), placeInput]));
-  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Adresse précise (recommandé)'}), addressInput]));
-  screen.appendChild(el('p', {class: 'sub', style: 'font-size:13px; margin-top:-12px; margin-bottom:16px;', text: "Numéro, rue et ville si possible — la soirée sera positionnée beaucoup plus précisément sur la carte. Sans ça, on se base sur le champ Lieu, moins fiable."}));
-  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Département'}), deptSelect]));
-  screen.appendChild(el('label', {text: 'Danse(s) au programme'}));
-  const danceWrap = el('div', {class: 'style-wrap'});
-  DANCE_STYLES.forEach(style => {
-    const active = localDanceStyles.includes(style);
-    const chip = el('span', {
-      class: 'style-chip' + (active ? ' active' : ''), text: style,
-      onclick: () => {
-        if (localDanceStyles.includes(style)) localDanceStyles = localDanceStyles.filter(s => s !== style);
-        else localDanceStyles.push(style);
-        chip.className = 'style-chip' + (localDanceStyles.includes(style) ? ' active' : '');
+  // --- Danseur·se·s et Organisateur·rice·s (deux listes séparées, paginées par 10, recherche par nom) ---
+  function renderUserRoleSection(role, label, bucketKey) {
+    const bucket = state[bucketKey];
+    screen.appendChild(el('h4', {text: label, style: 'font-family:Orbitron,sans-serif; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin:26px 0 12px;'}));
+
+    const searchInput = el('input', {placeholder: 'Rechercher un nom exact ou un début…', value: bucket.search});
+    searchInput.oninput = (e) => { bucket.search = e.target.value; };
+    searchInput.onkeydown = (e) => { if (e.key === 'Enter') loadAdminRolePage(role, true); };
+    screen.appendChild(searchInput);
+    screen.appendChild(el('button', {
+      class: 'secondary', text: state.adminLoading ? 'Recherche…' : 'Rechercher / Rafraîchir', style: 'margin-top:0; margin-bottom:16px;',
+      onclick: () => loadAdminRolePage(role, true)
+    }));
+
+    if (bucket.error) {
+      screen.appendChild(el('div', {class: 'error-msg', text: "Index Firestore manquant pour cette requête — vérifie la console du navigateur pour le lien de création automatique fourni par Firebase (une seule fois à faire)."}));
+    }
+
+    bucket.items.forEach(u => {
+      const banned = u.banned === true;
+      const row = el('div', {class: 'event-card'}, [
+        el('div', {class: 'event-title', text: (u.name || '(sans nom)') + (u.isCreator ? ' ★' : '')}),
+        el('div', {class: 'event-meta', text: label + (u.verified ? ' · vérifié' : '') + (banned ? ' · BLOQUÉ' : '')})
+      ]);
+      if (!u.isCreator) {
+        row.appendChild(el('button', {
+          class: 'secondary' + (banned ? '' : ' danger-outline'), text: banned ? 'Débloquer' : 'Bloquer', style: 'margin-top:10px;',
+          onclick: async (e) => {
+            e.target.disabled = true;
+            try {
+              await updateDoc(doc(db, 'users', u.uid), { banned: !banned });
+              u.banned = !banned;
+              state.adminStats = null;
+              render();
+            } catch (err) { e.target.disabled = false; }
+          }
+        }));
       }
+      screen.appendChild(row);
     });
-    danceWrap.appendChild(chip);
-  });
-  screen.appendChild(danceWrap);
-  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Prix'}), priceInput]));
-  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Description'}), descInput]));
 
-  const submitBtn = el('button', {
-    class: 'primary', text: isEdit ? 'Enregistrer les modifications' : 'Publier la soirée',
-    onclick: async () => {
-      if (!titleInput.value || !dateInput.value || !placeInput.value || !deptSelect.value) return;
-      submitBtn.disabled = true;
-      submitBtn.textContent = isEdit ? 'Enregistrement…' : 'Publication…';
-      const payload = {
-        title: titleInput.value, dateISO: dateInput.value, time: timeInput.value || '',
-        place: placeInput.value, address: addressInput.value || '', dept: deptSelect.value, danceStyles: localDanceStyles,
-        price: priceInput.value ? Number(priceInput.value) : 0,
-        desc: descInput.value || ''
-      };
-      const coords = await geocodePlace(eventQueryString(payload));
-      if (coords) { payload.lat = coords.lat; payload.lng = coords.lng; }
-      try {
-        if (isEdit) {
-          await updateDoc(doc(db, 'events', existingEvent.id), payload);
-          state.screen = 'detail';
-        } else {
-          await addDoc(collection(db, 'events'), { ...payload, attendees: [], views: 0, status: 'active', organizerUid: state.user.uid, createdAt: Date.now() });
-          state.screen = 'feed';
-        }
-        render();
-      } catch (err) {
-        console.error('Échec enregistrement soirée', err);
-        submitBtn.disabled = false;
-        submitBtn.textContent = isEdit ? 'Enregistrer les modifications' : 'Publier la soirée';
-      }
+    if (bucket.items.length === 0 && !state.adminLoading && !bucket.error) {
+      screen.appendChild(el('div', {class: 'empty', text: 'Aucun résultat.', style: 'padding:14px 0;'}));
     }
-  });
-  screen.appendChild(submitBtn);
-  return screen;
-}
-
-function CreateScreen() { return EventFormScreen(null, 'create'); }
-function EditScreen() {
-  const ev = state.events.find(e => e.id === state.currentEventId);
-  if (!ev) { state.screen = 'feed'; render(); return el('div'); }
-  return EventFormScreen(ev, 'edit');
-}
-function DuplicateScreen() {
-  const ev = state.events.find(e => e.id === state.currentEventId);
-  if (!ev) { state.screen = 'feed'; render(); return el('div'); }
-  return EventFormScreen(ev, 'duplicate');
-}
-
-// Filet de sécurité anti-autofill blanc : détecte le remplissage auto via l'astuce d'animation CSS,
-// et force la couleur sombre en JS (contourne les cas où le CSS seul ne suffit pas selon le navigateur/OS).
-function forceDarkField(input) {
-  input.style.setProperty('background-color', '#17171f', 'important');
-  input.style.setProperty('color', 'var(--paper)', 'important');
-  input.style.setProperty('-webkit-text-fill-color', 'var(--paper)', 'important');
-}
-document.addEventListener('animationstart', (e) => {
-  if (e.animationName === 'onAutoFillStart' && e.target.tagName === 'INPUT') forceDarkField(e.target);
-}, true);
-document.addEventListener('input', (e) => {
-  if (e.target.tagName === 'INPUT') forceDarkField(e.target);
-}, true);
-document.addEventListener('focus', (e) => {
-  if (e.target.tagName === 'INPUT') forceDarkField(e.target);
-}, true);
-
-function isLightBackground(colorStr) {
-  const m = colorStr.match(/[\d.]+/g);
-  if (!m) return false;
-  const [r, g, b, a] = m.map(Number);
-  if (a !== undefined && a < 0.3) return false;
-  return (0.299 * r + 0.587 * g + 0.114 * b) > 170;
-}
-
-// Auto-guérison : si Samsung Pass (ou tout autre gestionnaire) éclaircit un champ
-// par un autre chemin que le DOM standard, on le détecte et on le corrige aussitôt.
-const styleWatcher = new MutationObserver((mutations) => {
-  mutations.forEach(m => {
-    if (m.target.tagName === 'INPUT' && isLightBackground(getComputedStyle(m.target).backgroundColor)) {
-      forceDarkField(m.target);
+    if (bucket.hasMore && !bucket.search.trim()) {
+      screen.appendChild(el('button', {
+        class: 'secondary', text: state.adminLoading ? 'Chargement…' : 'Charger plus (10)', style: 'margin-bottom:10px;',
+        onclick: () => loadAdminRolePage(role, false)
+      }));
     }
-  });
-});
-styleWatcher.observe(document.body, { attributes: true, attributeFilter: ['style'], subtree: true });
+  }
 
-// Filet ultime : vérifie et corrige uniquement les champs devenus clairs, en continu
-setInterval(() => {
-  document.querySelectorAll('input').forEach(input => {
-    if (isLightBackground(getComputedStyle(input).backgroundColor)) forceDarkField(input);
-  });
-}, 400);
+  if (state.adminDancers.items.length === 0 && state.adminDancers.hasMore && !state.adminLoading && !state.adminDancers.error) loadAdminRolePage('dancer', true);
+  if (state.adminOrgs.items.length === 0 && state.adminOrgs.hasMore && !state.adminLoading && !state.adminOrgs.error) loadAdminRolePage('organizer', true);
 
-render();
-</script>
-</body>
-</html>
+  renderUserRoleSection('dancer', 'Danseur·se·s', 'adminDancers');
+  renderUserRoleSection('organizer', 'Organisateur·rice·s', 'adminOrgs');
+
+  // --- Toutes les soirées (modération) ---
+  screen.appendChild(el('h4', {text: 'Toutes les soirées', style: 'font-family:Orbitron,sans-serif; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin:26px 0 12px;'}));
+  const allEvents = state.events.slice().sort((a, b) => ((b.dateISO || '') + (b.time || '')).localeCompare((a.dateISO || '') + (a.time || ''))
