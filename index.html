@@ -171,6 +171,11 @@
   .save-indicator.show { opacity: 1; }
 
   .offline-banner { background: var(--pink); color: #0a0510; font-size: 13px; font-weight: 700; text-align: center; padding: 8px; }
+  .cookie-banner {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 460px;
+    background: rgba(6,6,8,0.97); border-top: 1px solid var(--blue-dim); padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
+    font-size: 13px; color: var(--muted); z-index: 900; box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
+  }
   .notice-banner { border: 1px solid var(--pink-dim); background: rgba(255,47,168,0.08); border-radius: 6px; padding: 14px; margin-bottom: 14px; font-size: 14px; }
   .notice-banner .title { color: var(--pink); font-weight: 700; margin-bottom: 4px; }
   .verify-banner { border: 1px solid var(--blue-dim); background: rgba(47,217,255,0.08); border-radius: 6px; padding: 12px 14px; margin-bottom: 16px; font-size: 13px; color: var(--muted); }
@@ -349,6 +354,42 @@ function containsBannedWord(text) {
   const normalized = normalizeForFilter(text);
   return BANNED_WORDS.some(w => normalized.includes(normalizeForFilter(w)));
 }
+
+// Compresse une image choisie par l'utilisateur en base64 (JPEG), pour la stocker directement
+// dans Firestore sans passer par Firebase Storage (payant). Reste sous la limite de 1 Mo par document.
+function compressImageFile(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type.startsWith('image/')) { reject(new Error('Pas une image.')); return; }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Lecture du fichier impossible.'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Image invalide.'));
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > h && w > maxDim) { h = Math.round(h * maxDim / w); w = maxDim; }
+        else if (h > maxDim) { w = Math.round(w * maxDim / h); h = maxDim; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality || 0.75));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function avatarHtml(photoURL, name, size) {
+  size = size || 40;
+  if (photoURL) {
+    return `<img src="${photoURL}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;border:1.5px solid var(--blue-dim);" />`;
+  }
+  const initial = (name || '?').trim().charAt(0).toUpperCase();
+  const fontSize = Math.round(size * 0.42);
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:rgba(47,217,255,0.1);border:1.5px solid var(--blue-dim);display:flex;align-items:center;justify-content:center;font-family:Orbitron,sans-serif;font-weight:700;font-size:${fontSize}px;color:var(--blue);">${initial}</div>`;
+}
+
 const DEPARTMENTS = [
   "01 - Ain","02 - Aisne","03 - Allier","04 - Alpes-de-Haute-Provence","05 - Hautes-Alpes","06 - Alpes-Maritimes",
   "07 - Ardèche","08 - Ardennes","09 - Ariège","10 - Aube","11 - Aude","12 - Aveyron","13 - Bouches-du-Rhône",
@@ -372,7 +413,9 @@ const LEGAL_TEXT = `POLITIQUE DE CONFIDENTIALITÉ
 
 Pulse (version alpha) collecte : ton email et mot de passe (pour ton compte), ton prénom, ton rôle, tes danses pratiquées, et selon ton usage, les soirées que tu crées ou auxquelles tu participes.
 
-Si tu le souhaites, tu peux également renseigner ton pseudo Instagram sur ta page de profil. Ce champ est entièrement optionnel, vide par défaut, et visible uniquement par les autres utilisateurs de Pulse (par exemple les danseurs inscrits à une même soirée). Tu peux le modifier ou le supprimer à tout moment depuis ton profil.
+Si tu le souhaites, tu peux également renseigner ton pseudo Instagram, une photo de profil, et/ou une image de couverture sur tes soirées (organisateurs). Ces champs sont entièrement optionnels, vides par défaut, et visibles publiquement par les autres utilisateurs de Pulse. Tu peux les modifier ou les supprimer à tout moment depuis ton profil ou la fiche de ta soirée.
+
+Toute photo ou image contenant un contenu illicite, offensant ou inapproprié entraîne la suppression du contenu et, selon la gravité, la suspension définitive du compte concerné, suite à un signalement examiné par l'équipe Pulse.
 
 Ces données sont hébergées par Firebase (Google Cloud, Europe), conformes RGPD. Elles ne sont jamais vendues ni partagées à des fins commerciales.
 
@@ -448,6 +491,8 @@ let state = {
   online: navigator.onLine,
   countedViews: new Set(),
   dismissedNotices: JSON.parse(localStorage.getItem('pulse-dismissed-notices') || '[]'),
+  cookieConsent: localStorage.getItem('pulse-cookie-consent') === '1',
+  showFollowingOnly: false,
   viewMode: 'list',
   mapSearchCity: '',
   mapSearchRadius: 50,
@@ -596,6 +641,17 @@ function render() {
   else if (state.screen === 'history') app.appendChild(HistoryScreen());
   else if (state.screen === 'other-profile') app.appendChild(OtherProfileScreen());
   else if (state.screen === 'admin') app.appendChild(AdminScreen());
+
+  if (!state.cookieConsent) {
+    app.appendChild(el('div', {class: 'cookie-banner'}, [
+      el('div', {text: "Pulse utilise uniquement le stockage nécessaire à ton compte et tes préférences — aucun cookie publicitaire, aucun traceur."}),
+      el('button', {class: 'primary', text: 'OK, compris', style: 'margin-top:10px;', onclick: () => {
+        state.cookieConsent = true;
+        localStorage.setItem('pulse-cookie-consent', '1');
+        render();
+      }})
+    ]));
+  }
 }
 
 function iconSvg(name, size) {
@@ -924,6 +980,40 @@ function ProfileScreen() {
   screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
   screen.appendChild(el('h1', {text: 'Ton profil'}));
 
+  const avatarWrap = el('div', {style: 'display:flex; align-items:center; gap:16px; margin-bottom:24px;'});
+  const avatarPreview = el('span', {html: avatarHtml(state.profile.photoURL, state.profile.name, 72)});
+  const avatarInput = el('input', {type: 'file', accept: 'image/*', style: 'display:none;'});
+  const avatarStatus = el('div', {style: 'font-size:13px; color:var(--muted); margin-top:4px;'});
+  avatarInput.onchange = async () => {
+    const file = avatarInput.files[0];
+    if (!file) return;
+    avatarStatus.textContent = 'Compression…';
+    try {
+      const dataUrl = await compressImageFile(file, 300, 0.75);
+      avatarStatus.textContent = 'Enregistrement…';
+      await updateDoc(doc(db, 'users', state.user.uid), { photoURL: dataUrl });
+      state.profile.photoURL = dataUrl;
+      avatarPreview.innerHTML = avatarHtml(dataUrl, state.profile.name, 72);
+      avatarStatus.textContent = '✓ Photo mise à jour';
+      setTimeout(() => { avatarStatus.textContent = ''; }, 2000);
+    } catch (e) {
+      avatarStatus.textContent = "Échec — réessaie avec une autre photo.";
+    }
+  };
+  const avatarBtns = el('div', {}, [
+    el('button', {class: 'secondary', text: 'Changer la photo', style: 'margin-top:0;', onclick: () => avatarInput.click()}),
+    state.profile.photoURL ? el('span', {class: 'link-btn', text: 'Retirer', style: 'display:block; margin-top:8px;', onclick: async () => {
+      await updateDoc(doc(db, 'users', state.user.uid), { photoURL: null });
+      state.profile.photoURL = null;
+      avatarPreview.innerHTML = avatarHtml(null, state.profile.name, 72);
+    }}) : null,
+    avatarStatus
+  ]);
+  avatarWrap.appendChild(avatarPreview);
+  avatarWrap.appendChild(avatarInput);
+  avatarWrap.appendChild(avatarBtns);
+  screen.appendChild(avatarWrap);
+
   if (state.user && !state.user.emailVerified) {
     let pollActive = true;
     const pollVerify = async () => {
@@ -1061,6 +1151,7 @@ function OtherProfileScreen() {
     return screen;
   }
   const p = state.viewedProfile;
+  screen.appendChild(el('span', {html: avatarHtml(p.photoURL, p.name, 84), style: 'display:block; margin-bottom:14px;'}));
   screen.appendChild(el('h1', {text: p.name}));
   screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Rôle'}), el('div', {text: p.role === 'dancer' ? 'Danseur·se' : 'Organisateur·rice'})]));
   if (p.danceStyles && p.danceStyles.length) {
@@ -1076,6 +1167,21 @@ function OtherProfileScreen() {
       onclick: () => window.open('https://instagram.com/' + p.instagram, '_blank')
     }, iconLabel('instagram', '@' + p.instagram)));
     screen.appendChild(socialRow);
+  }
+  if (p.role === 'organizer' && state.viewedProfileUid !== state.user.uid) {
+    const following = (state.profile.following || []).includes(state.viewedProfileUid);
+    const followBtn = el('button', {
+      class: 'secondary' + (following ? '' : ' danger-outline'), style: 'margin-top:0; margin-bottom:16px;',
+      text: following ? '✓ Suivi·e' : 'Suivre',
+      onclick: async () => {
+        const list = state.profile.following || [];
+        const newList = following ? list.filter(id => id !== state.viewedProfileUid) : [...list, state.viewedProfileUid];
+        state.profile.following = newList;
+        render();
+        try { await updateDoc(doc(db, 'users', state.user.uid), { following: newList }); } catch(e) {}
+      }
+    });
+    screen.appendChild(followBtn);
   }
   if (p.role === 'organizer') {
     const others = state.events.filter(ev => ev.organizerUid === state.viewedProfileUid && ev.status !== 'cancelled' && !isEventHidden(ev) && ev.id !== state.currentEventId);
@@ -1096,6 +1202,20 @@ function OtherProfileScreen() {
     class: 'secondary danger-outline', text: 'Signaler ce profil', style: 'margin-top:24px;',
     onclick: () => submitReport('user', state.viewedProfileUid, p.name)
   }));
+  if (state.profile.isCreator && !p.isCreator) {
+    screen.appendChild(el('button', {
+      class: 'secondary danger-outline', text: 'Supprimer ce compte (modération)', style: 'margin-top:10px;',
+      onclick: async (e) => {
+        if (!confirm('Supprimer définitivement le compte de "' + (p.name || 'cet utilisateur') + '" ? Cette action bloque le compte et efface toutes ses données visibles.')) return;
+        e.target.disabled = true;
+        try {
+          await deleteUserAccount(state.viewedProfileUid);
+          state.viewedProfile = { ...p, banned: true, name: '[Compte supprimé]', photoURL: null };
+          render();
+        } catch (err) { e.target.disabled = false; }
+      }
+    }));
+  }
   return screen;
 }
 
@@ -1140,6 +1260,26 @@ function FeedScreen() {
     screen.appendChild(banner);
   });
 
+  // Rappel pour les soirées de demain (favorites ou "j'y vais")
+  const tomorrowISO = (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); })();
+  const favs = state.profile.favorites || [];
+  const tomorrowEvents = state.events.filter(ev =>
+    ev.dateISO === tomorrowISO && ev.status !== 'cancelled' &&
+    ((ev.attendees||[]).some(a => a.uid === state.user.uid) || favs.includes(ev.id)) &&
+    !state.dismissedNotices.includes('reminder-' + ev.id)
+  );
+  tomorrowEvents.forEach(ev => {
+    screen.appendChild(el('div', {class: 'verify-banner', style: 'cursor:pointer;', onclick: () => { state.currentEventId = ev.id; state.screen = 'detail'; render(); }}, [
+      el('div', {text: '📅 "' + ev.title + '" c\'est demain ! · ' + ev.time}),
+      el('span', {class: 'link-btn', text: 'Masquer', style: 'display:inline-block; margin-top:8px;', onclick: (e) => {
+        e.stopPropagation();
+        state.dismissedNotices.push('reminder-' + ev.id);
+        localStorage.setItem('pulse-dismissed-notices', JSON.stringify(state.dismissedNotices));
+        render();
+      }})
+    ]));
+  });
+
   screen.appendChild(el('h1', {text: 'Soirées à venir'}));
 
   const toggleRow = el('div', {class: 'view-toggle'});
@@ -1167,6 +1307,10 @@ function FeedScreen() {
     filterRow.appendChild(el('span', {
       class: 'sort-chip' + (state.showFavoritesOnly ? ' active' : ''), text: '❤ Favoris',
       onclick: () => { state.showFavoritesOnly = !state.showFavoritesOnly; refreshFilterRow(); renderFeedListOnly(); }
+    }));
+    filterRow.appendChild(el('span', {
+      class: 'sort-chip' + (state.showFollowingOnly ? ' active' : ''), text: '★ Suivis',
+      onclick: () => { state.showFollowingOnly = !state.showFollowingOnly; refreshFilterRow(); renderFeedListOnly(); }
     }));
     DANCE_STYLES.forEach(style => {
       filterRow.appendChild(el('span', {
@@ -1237,6 +1381,10 @@ function buildFeedList() {
     const favs = state.profile.favorites || [];
     events = events.filter(ev => favs.includes(ev.id));
   }
+  if (state.showFollowingOnly) {
+    const followList = state.profile.following || [];
+    events = events.filter(ev => followList.includes(ev.organizerUid));
+  }
   if (state.sortBy === 'popular') events.sort((a, b) => (b.attendees||[]).length - (a.attendees||[]).length);
   else if (state.sortBy === 'price') events.sort((a, b) => (a.price||0) - (b.price||0));
   else events.sort((a, b) => ((a.dateISO||'') + (a.time||'')).localeCompare((b.dateISO||'') + (b.time||'')));
@@ -1250,6 +1398,7 @@ function buildFeedList() {
     const going = attendees.some(a => a.uid === state.user.uid);
     const isFav = (state.profile.favorites || []).includes(ev.id);
     const card = el('div', { class: 'event-card', onclick: () => { state.currentEventId = ev.id; state.screen = 'detail'; render(); } }, [
+      ev.coverImage ? el('div', {style: `width:100%; height:90px; border-radius:6px; margin-bottom:10px; background:url(${ev.coverImage}) center/cover no-repeat;`}) : null,
       el('button', {
         class: 'fav-btn' + (isFav ? ' active' : ''), text: isFav ? '♥' : '♡',
         onclick: async (e) => {
@@ -1552,6 +1701,9 @@ function DetailScreen() {
   const isFav = (state.profile.favorites || []).includes(ev.id);
   const screen = el('div', {class: 'screen'});
   screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'feed'; render(); }}));
+  if (ev.coverImage) {
+    screen.appendChild(el('div', {style: `width:100%; height:170px; border-radius:8px; margin-bottom:16px; background:url(${ev.coverImage}) center/cover no-repeat; border:1px solid var(--blue-dim);`}));
+  }
   if (ev.status === 'cancelled') screen.appendChild(el('div', {class: 'cancelled-badge', text: 'Annulée'}));
   screen.appendChild(el('div', {class: 'event-date', text: formatEventDate(ev.dateISO) + ' · ' + ev.time}));
   screen.appendChild(el('div', {class: 'detail-title', text: ev.title}));
@@ -1569,7 +1721,7 @@ function DetailScreen() {
   screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Organisé par'}), organizerNameSpan]));
   screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Département'}), el('div', {text: ev.dept || '—'})]));
   screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Prix'}), el('div', {text: ev.price ? ev.price + ' €' : 'Gratuit'})]));
-  const participantsRow = el('div', {text: attendees.length + ' inscrit·e·s'});
+  const participantsRow = el('div', {text: attendees.length + (ev.capacity ? ' / ' + ev.capacity + ' places' : ' inscrit·e·s')});
   screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Participants'}), participantsRow]));
   screen.appendChild(el('div', {class: 'detail-desc', text: ev.desc}));
 
@@ -1630,7 +1782,7 @@ function DetailScreen() {
         }
       })));
     }
-    participantsRow.textContent = currentAttendees.length + ' inscrit·e·s';
+    participantsRow.textContent = currentAttendees.length + (ev.capacity ? ' / ' + ev.capacity + ' places' : ' inscrit·e·s');
   }
   refreshAttendees(attendees);
   screen.appendChild(attList);
@@ -1668,13 +1820,18 @@ function DetailScreen() {
 
   if (state.profile.role === 'dancer' && ev.status !== 'cancelled') {
     let currentGoing = going;
+    const isFull = ev.capacity && attendees.length >= ev.capacity && !currentGoing;
     const rsvpBtn = el('button', {
       class: 'primary' + (currentGoing ? ' going' : ''),
-      text: currentGoing ? '✓ Tu y vas — annuler' : "J'y vais",
+      text: isFull ? 'Complet' : (currentGoing ? '✓ Tu y vas — annuler' : "J'y vais"),
       onclick: async () => {
+        if (rsvpBtn.disabled) return;
         let newAttendees;
         if (currentGoing) newAttendees = ev.attendees.filter(a => a.uid !== state.user.uid);
-        else newAttendees = [...(ev.attendees || []), { uid: state.user.uid, name: state.profile.name }];
+        else {
+          if (ev.capacity && (ev.attendees || []).length >= ev.capacity) { rsvpBtn.textContent = 'Complet'; rsvpBtn.disabled = true; return; }
+          newAttendees = [...(ev.attendees || []), { uid: state.user.uid, name: state.profile.name }];
+        }
         ev.attendees = newAttendees;
         currentGoing = !currentGoing;
         rsvpBtn.className = 'primary' + (currentGoing ? ' going' : '');
@@ -1683,6 +1840,7 @@ function DetailScreen() {
         try { await updateDoc(doc(db, 'events', ev.id), { attendees: newAttendees }); flashSaved(); } catch (err) { console.error('Échec RSVP', err); }
       }
     });
+    if (isFull) rsvpBtn.disabled = true;
     screen.appendChild(rsvpBtn);
   }
   if (state.user.uid !== ev.organizerUid) {
@@ -1759,6 +1917,20 @@ async function loadPendingReportsCount() {
 }
 
 let adminRefs = {};
+
+// Modération : "supprime" un compte sans passer par une Cloud Function payante —
+// bloque la connexion définitivement et efface toutes les données visibles publiquement.
+async function deleteUserAccount(uid) {
+  await updateDoc(doc(db, 'users', uid), {
+    banned: true,
+    name: '[Compte supprimé]',
+    photoURL: null,
+    instagram: '',
+    danceStyles: [],
+    following: [],
+    favorites: []
+  });
+}
 
 async function loadAdminStats() {
   try {
@@ -2014,6 +2186,20 @@ function AdminScreen() {
               } catch (err) { e.target.disabled = false; }
             }
           }));
+          row.appendChild(el('button', {
+            class: 'secondary danger-outline', text: 'Supprimer le compte', style: 'margin-top:10px; margin-left:8px;',
+            onclick: async (e) => {
+              if (!confirm('Supprimer définitivement le compte de "' + (u.name || 'cet utilisateur') + '" ? Cette action bloque le compte et efface toutes ses données visibles.')) return;
+              e.target.disabled = true;
+              try {
+                await deleteUserAccount(u.uid);
+                u.banned = true; u.name = '[Compte supprimé]'; u.photoURL = null;
+                refreshList();
+                state.adminStats = null;
+                loadAdminStats();
+              } catch (err) { e.target.disabled = false; }
+            }
+          }));
         }
         resultsContainer.appendChild(row);
       });
@@ -2104,6 +2290,42 @@ function EventFormScreen(existingEvent, mode) {
   screen.appendChild(el('h1', {text: isEdit ? 'Modifier la soirée' : 'Nouvelle soirée'}));
   if (!isEdit) screen.appendChild(el('p', {class: 'sub', text: 'Renseigne les infos, les danseurs verront ta soirée dans le flux.'}));
 
+  let coverImageData = (existingEvent && !isDuplicate) ? (existingEvent.coverImage || null) : null;
+  const coverPreview = el('div', {
+    style: 'width:100%; height:140px; border-radius:8px; margin-bottom:10px; background:' +
+      (coverImageData ? `url(${coverImageData}) center/cover no-repeat` : 'rgba(47,217,255,0.05)') +
+      '; border:1px solid var(--blue-dim); display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:13px;'
+  });
+  if (!coverImageData) coverPreview.textContent = 'Aucune image de couverture';
+  const coverInput = el('input', {type: 'file', accept: 'image/*', style: 'display:none;'});
+  const coverStatus = el('div', {style: 'font-size:13px; color:var(--muted); margin:8px 0;'});
+  coverInput.onchange = async () => {
+    const file = coverInput.files[0];
+    if (!file) return;
+    coverStatus.textContent = 'Compression…';
+    try {
+      coverImageData = await compressImageFile(file, 900, 0.72);
+      coverPreview.style.background = `url(${coverImageData}) center/cover no-repeat`;
+      coverPreview.textContent = '';
+      coverStatus.textContent = '✓ Image prête (sera enregistrée à la publication)';
+    } catch (e) {
+      coverStatus.textContent = "Échec — réessaie avec une autre image.";
+    }
+  };
+  screen.appendChild(coverPreview);
+  const coverBtnRow = el('div', {style: 'display:flex; gap:10px; margin-bottom:16px;'});
+  coverBtnRow.appendChild(el('button', {class: 'secondary', text: coverImageData ? "Changer l'image" : 'Ajouter une image de couverture', style: 'margin-top:0;', onclick: () => coverInput.click()}));
+  if (coverImageData) {
+    coverBtnRow.appendChild(el('button', {class: 'secondary', text: 'Retirer', style: 'margin-top:0;', onclick: () => {
+      coverImageData = null;
+      coverPreview.style.background = 'rgba(47,217,255,0.05)';
+      coverPreview.textContent = 'Aucune image de couverture';
+    }}));
+  }
+  screen.appendChild(coverBtnRow);
+  screen.appendChild(coverInput);
+  screen.appendChild(coverStatus);
+
   const titleInput = el('input', {placeholder: 'Titre de la soirée', maxlength: '60'});
   const dateInput = el('input', {type: 'date'});
   const timeInput = el('input', {type: 'time'});
@@ -2113,6 +2335,7 @@ function EventFormScreen(existingEvent, mode) {
   deptSelect.appendChild(el('option', {text: 'Choisir un département', value: ''}));
   DEPARTMENTS.forEach(d => deptSelect.appendChild(el('option', {text: d, value: d})));
   const priceInput = el('input', {placeholder: 'Prix en € (laisser vide si gratuit)', type: 'number', min: '0'});
+  const capacityInput = el('input', {placeholder: 'Places max (laisser vide = illimité)', type: 'number', min: '1'});
   const descInput = el('textarea', {placeholder: 'Description', maxlength: '500'});
 
   let localDanceStyles = existingEvent && existingEvent.danceStyles ? [...existingEvent.danceStyles] : [];
@@ -2125,6 +2348,7 @@ function EventFormScreen(existingEvent, mode) {
     addressInput.value = existingEvent.address || '';
     deptSelect.value = existingEvent.dept || '';
     priceInput.value = existingEvent.price || '';
+    capacityInput.value = existingEvent.capacity || '';
     descInput.value = existingEvent.desc || '';
   }
 
@@ -2151,7 +2375,22 @@ function EventFormScreen(existingEvent, mode) {
   });
   screen.appendChild(danceWrap);
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Prix'}), priceInput]));
+  screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Places max (optionnel)'}), capacityInput]));
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Description'}), descInput]));
+
+  const recurCheckbox = el('input', {type: 'checkbox', id: 'recur-check'});
+  const recurCountInput = el('input', {type: 'number', min: '2', max: '52', value: '4', style: 'display:none; margin-top:10px;'});
+  if (!isEdit) {
+    const recurRow = el('div', {class: 'checkbox-row'});
+    recurRow.appendChild(recurCheckbox);
+    const recurLabel = el('label', {text: "Répéter chaque semaine (même jour/heure)"});
+    recurLabel.setAttribute('for', 'recur-check');
+    recurRow.appendChild(recurLabel);
+    recurCheckbox.onchange = () => { recurCountInput.style.display = recurCheckbox.checked ? 'block' : 'none'; };
+    screen.appendChild(recurRow);
+    screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Nombre de semaines (dont celle-ci)'}), recurCountInput]));
+  }
+
   const formErrorBox = el('div', {});
   screen.appendChild(formErrorBox);
 
@@ -2170,6 +2409,8 @@ function EventFormScreen(existingEvent, mode) {
         title: titleInput.value, dateISO: dateInput.value, time: timeInput.value || '',
         place: placeInput.value, address: addressInput.value || '', dept: deptSelect.value, danceStyles: localDanceStyles,
         price: priceInput.value ? Number(priceInput.value) : 0,
+        capacity: capacityInput.value ? Number(capacityInput.value) : null,
+        coverImage: coverImageData || null,
         desc: descInput.value || ''
       };
       const coords = await geocodePlace(eventQueryString(payload));
@@ -2178,6 +2419,16 @@ function EventFormScreen(existingEvent, mode) {
         if (isEdit) {
           await updateDoc(doc(db, 'events', existingEvent.id), payload);
           state.screen = 'detail';
+        } else if (recurCheckbox.checked) {
+          const weeks = Math.max(2, Math.min(52, Number(recurCountInput.value) || 2));
+          const baseDate = new Date(payload.dateISO + 'T00:00:00');
+          for (let i = 0; i < weeks; i++) {
+            const d = new Date(baseDate);
+            d.setDate(d.getDate() + i * 7);
+            const occDateISO = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+            await addDoc(collection(db, 'events'), { ...payload, dateISO: occDateISO, attendees: [], views: 0, status: 'active', organizerUid: state.user.uid, createdAt: Date.now() });
+          }
+          state.screen = 'feed';
         } else {
           await addDoc(collection(db, 'events'), { ...payload, attendees: [], views: 0, status: 'active', organizerUid: state.user.uid, createdAt: Date.now() });
           state.screen = 'feed';
