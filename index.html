@@ -286,6 +286,16 @@
 </head>
 <body>
 <div id="app"><div class="loading">PULSE</div></div>
+<script>
+  window.addEventListener('error', function(e) {
+    var app = document.getElementById('app');
+    if (app) app.innerHTML = '<div style="padding:24px; color:#ff2fa8; font-family:monospace; font-size:13px; white-space:pre-wrap;">Erreur au chargement :\n' + (e.message || e.error) + '\n\nFichier : ' + (e.filename || '?') + ':' + (e.lineno || '?') + '</div>';
+  });
+  window.addEventListener('unhandledrejection', function(e) {
+    var app = document.getElementById('app');
+    if (app) app.innerHTML = '<div style="padding:24px; color:#ff2fa8; font-family:monospace; font-size:13px; white-space:pre-wrap;">Erreur (promesse) :\n' + (e.reason && (e.reason.stack || e.reason.message || e.reason)) + '</div>';
+  });
+</script>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -1918,18 +1928,4 @@ function AdminScreen() {
       screen.appendChild(el('div', {class: 'empty', text: 'Aucun résultat.', style: 'padding:14px 0;'}));
     }
     if (bucket.hasMore && !bucket.search.trim()) {
-      screen.appendChild(el('button', {
-        class: 'secondary', text: state.adminLoading ? 'Chargement…' : 'Charger plus (10)', style: 'margin-bottom:10px;',
-        onclick: () => loadAdminRolePage(role, false)
-      }));
-    }
-  }
-
-  if (state.adminDancers.items.length === 0 && state.adminDancers.hasMore && !state.adminLoading && !state.adminDancers.error) loadAdminRolePage('dancer', true);
-  if (state.adminOrgs.items.length === 0 && state.adminOrgs.hasMore && !state.adminLoading && !state.adminOrgs.error) loadAdminRolePage('organizer', true);
-
-  renderUserRoleSection('dancer', 'Danseur·se·s', 'adminDancers');
-  renderUserRoleSection('organizer', 'Organisateur·rice·s', 'adminOrgs');
-
-  // --- Toutes les soirées (modération) ---
-  screen.appendChi
+      screen.appendChild(el('but
