@@ -456,10 +456,6 @@ function formatEventDate(iso) {
   const d = new Date(iso + 'T00:00:00');
   return d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
 }
-function todayISO() {
-  const n = new Date();
-  return n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0') + '-' + String(n.getDate()).padStart(2,'0');
-}
 function isEventHidden(ev) {
   if (!ev.dateISO) return false;
   const hideAt = new Date(ev.dateISO + 'T00:00:00');
@@ -503,6 +499,7 @@ let state = {
   adminStats: null,
   adminOrganizers: null,
   adminReports: null,
+  adminLogs: null,
   pendingReportsCount: null,
   adminDancers: { items: [], lastDoc: null, hasMore: true, search: '', error: null },
   adminOrgs: { items: [], lastDoc: null, hasMore: true, search: '', error: null },
@@ -662,7 +659,6 @@ function iconSvg(name, size) {
     list: '<line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="14" y2="18"/>',
     map: '<polygon points="3,6 9,3 15,6 21,3 21,18 15,21 9,18 3,21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/>',
     instagram: '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r="1.1" fill="currentColor" stroke="none"/>',
-    facebook: '<path d="M15 21v-8h3l.5-4H15V6.5a1.5 1.5 0 0 1 1.5-1.5H18V1.5A22 22 0 0 0 15.5 1 4.5 4.5 0 0 0 11 5.5V9H8v4h3v8z"/>',
     offline: '<path d="M1 9l2 2c4.9-4.9 12.1-4.9 17 0l2-2C15.9 2.9 8.1 2.9 1 9z"/><path d="M5 13l2 2a7.1 7.1 0 0 1 10 0l2-2a10 10 0 0 0-14 0z"/><line x1="3" y1="3" x2="21" y2="21"/><circle cx="12" cy="19" r="1" fill="currentColor" stroke="none"/>',
     mail: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 6l10 7 10-7"/>',
     calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/>',
@@ -1115,7 +1111,7 @@ function ProfileScreen() {
     screen.appendChild(el('button', {class: 'secondary', text: 'Mes soirées', onclick: () => { state.screen = 'my-events'; render(); }}));
   }
   screen.appendChild(el('button', {class: 'secondary', text: 'Mentions légales & confidentialité', onclick: () => { state.screen = 'legal'; render(); }}));
-  if (state.profile.isCreator) {
+  if (state.profile.isCreator || state.profile.isAdmin) {
     screen.appendChild(el('span', {class: 'badge-anchor', style: 'display:block; margin-top:10px;'}, [
       el('button', {class: 'secondary danger-outline', text: 'Administration', style: 'margin-top:0;', onclick: () => {
         state.adminStats = null; state.adminOrganizers = null; state.adminReports = null;
@@ -1202,7 +1198,7 @@ function OtherProfileScreen() {
     class: 'secondary danger-outline', text: 'Signaler ce profil', style: 'margin-top:24px;',
     onclick: () => submitReport('user', state.viewedProfileUid, p.name)
   }));
-  if (state.profile.isCreator && !p.isCreator) {
+  if ((state.profile.isCreator || state.profile.isAdmin) && !p.isCreator) {
     screen.appendChild(el('button', {
       class: 'secondary danger-outline', text: 'Supprimer ce compte (modération)', style: 'margin-top:10px;',
       onclick: async (e) => {
@@ -1210,6 +1206,7 @@ function OtherProfileScreen() {
         e.target.disabled = true;
         try {
           await deleteUserAccount(state.viewedProfileUid);
+          logAdminAction('account_deleted', state.viewedProfileUid, p.name);
           state.viewedProfile = { ...p, banned: true, name: '[Compte supprimé]', photoURL: null };
           render();
         } catch (err) { e.target.disabled = false; }
@@ -1222,7 +1219,7 @@ function OtherProfileScreen() {
 // ---------- FEED ----------
 
 function FeedScreen() {
-  if (state.profile.isCreator && state.pendingReportsCount === null) loadPendingReportsCount();
+  if ((state.profile.isCreator || state.profile.isAdmin) && state.pendingReportsCount === null) loadPendingReportsCount();
   const screen = el('div', {class: 'screen'});
   screen.appendChild(el('div', {class: 'topbar'}, [
     el('div', {class: 'brand', text: 'PULSE'}),
@@ -1232,9 +1229,10 @@ function FeedScreen() {
           try { await state.user.reload(); state.user = auth.currentUser; } catch(e) {}
           state.screen = 'profile'; render();
         }}),
-        (state.profile.isCreator && state.pendingReportsCount > 0) ? el('span', {class: 'notif-badge', text: String(state.pendingReportsCount)}) : null
+        ((state.profile.isCreator || state.profile.isAdmin) && state.pendingReportsCount > 0) ? el('span', {class: 'notif-badge', text: String(state.pendingReportsCount)}) : null
       ]),
       state.profile.isCreator ? el('span', {class: 'dept-badge', text: '★ Créateur·rice', style: 'margin-bottom:0'}) : null,
+      (state.profile.isAdmin && !state.profile.isCreator) ? el('span', {class: 'dept-badge', text: '🛡 Admin', style: 'margin-bottom:0'}) : null,
       el('div', {
         class: 'role-pill', text: 'Déconnexion',
         style: 'cursor:pointer', onclick: async () => { await signOut(auth); }
@@ -1352,7 +1350,7 @@ function FeedScreen() {
   screen.appendChild(list);
 
   if (state.profile.role === 'organizer') {
-    if (state.profile.isCreator || state.profile.verified === true) {
+    if (state.profile.isCreator || state.profile.isAdmin || state.profile.verified === true) {
       screen.appendChild(el('button', {class: 'fab', text: '+', onclick: () => { state.screen = 'create'; render(); }}));
     } else {
       screen.appendChild(el('div', {class: 'verify-banner', text: '⏳ Ton compte organisateur est en attente de vérification. Tu pourras publier des soirées une fois validé.', style: 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); width:calc(100% - 44px); max-width:416px;'}));
@@ -1584,7 +1582,7 @@ function MapFullScreen() {
   wrap.appendChild(mapCanvas);
   setTimeout(() => renderFranceMap(mapCanvas), 0);
 
-  if (state.profile.role === 'organizer' && (state.profile.isCreator || state.profile.verified === true)) {
+  if (state.profile.role === 'organizer' && (state.profile.isCreator || state.profile.isAdmin || state.profile.verified === true)) {
     wrap.appendChild(el('button', {class: 'fab', text: '+', onclick: () => { state.screen = 'create'; render(); }}));
   }
 
@@ -1932,6 +1930,17 @@ async function deleteUserAccount(uid) {
   });
 }
 
+// Journal d'activité admin (traçabilité des actions de modération)
+async function logAdminAction(action, targetId, targetName) {
+  try {
+    await addDoc(collection(db, 'adminLogs'), {
+      action, targetId, targetName: targetName || '',
+      actorUid: state.user.uid, actorName: state.profile.name || '',
+      timestamp: Date.now()
+    });
+  } catch (e) {}
+}
+
 async function loadAdminStats() {
   try {
     const usersCol = collection(db, 'users');
@@ -1953,6 +1962,16 @@ async function loadAdminStats() {
     state.adminStats = null;
   }
   (adminRefs.refreshStats || render)();
+}
+
+async function loadAdminLogs() {
+  try {
+    const snap = await getDocs(query(collection(db, 'adminLogs'), orderBy('timestamp', 'desc'), limit(30)));
+    state.adminLogs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) {
+    state.adminLogs = [];
+  }
+  (adminRefs.refreshLogs || render)();
 }
 
 async function loadAdminReports() {
@@ -2012,7 +2031,7 @@ function AdminScreen() {
   screen.appendChild(el('button', {class: 'back-btn', text: '← Retour', onclick: () => { state.screen = 'profile'; render(); }}));
   screen.appendChild(el('h1', {text: 'Administration'}));
 
-  if (!state.profile.isCreator) {
+  if (!state.profile.isCreator && !state.profile.isAdmin) {
     screen.appendChild(el('div', {class: 'empty', text: "Accès réservé."}));
     return screen;
   }
@@ -2088,6 +2107,7 @@ function AdminScreen() {
           e.target.disabled = true;
           try {
             await updateDoc(doc(db, 'reports', r.id), { status: 'resolved' });
+            logAdminAction('report_resolved', r.targetId, r.targetName);
             state.adminReports = state.adminReports.filter(x => x.id !== r.id);
             if (typeof state.pendingReportsCount === 'number') state.pendingReportsCount = Math.max(0, state.pendingReportsCount - 1);
             refreshReports();
@@ -2128,6 +2148,7 @@ function AdminScreen() {
           e.target.disabled = true; e.target.textContent = 'Vérification…';
           try {
             await updateDoc(doc(db, 'users', u.uid), { verified: true });
+            logAdminAction('organizer_verified', u.uid, u.name);
             u.verified = true;
             refreshPendingOrgs();
             state.adminStats = null;
@@ -2169,7 +2190,7 @@ function AdminScreen() {
       bucket.items.forEach(u => {
         const banned = u.banned === true;
         const row = el('div', {class: 'event-card'}, [
-          el('div', {class: 'event-title', text: (u.name || '(sans nom)') + (u.isCreator ? ' ★' : '')}),
+          el('div', {class: 'event-title', text: (u.name || '(sans nom)') + (u.isCreator ? ' ★' : '') + (u.isAdmin ? ' 🛡' : '')}),
           el('div', {class: 'event-meta', text: label + (u.verified ? ' · vérifié' : '') + (banned ? ' · BLOQUÉ' : '')})
         ]);
         if (!u.isCreator) {
@@ -2179,6 +2200,7 @@ function AdminScreen() {
               e.target.disabled = true;
               try {
                 await updateDoc(doc(db, 'users', u.uid), { banned: !banned });
+                logAdminAction(!banned ? 'account_banned' : 'account_unbanned', u.uid, u.name);
                 u.banned = !banned;
                 refreshList();
                 state.adminStats = null;
@@ -2193,6 +2215,7 @@ function AdminScreen() {
               e.target.disabled = true;
               try {
                 await deleteUserAccount(u.uid);
+                logAdminAction('account_deleted', u.uid, u.name);
                 u.banned = true; u.name = '[Compte supprimé]'; u.photoURL = null;
                 refreshList();
                 state.adminStats = null;
@@ -2200,6 +2223,20 @@ function AdminScreen() {
               } catch (err) { e.target.disabled = false; }
             }
           }));
+          if (state.profile.isCreator) {
+            row.appendChild(el('button', {
+              class: 'secondary' + (u.isAdmin ? ' danger-outline' : ''), text: u.isAdmin ? 'Retirer admin' : 'Nommer admin', style: 'margin-top:10px; margin-left:8px;',
+              onclick: async (e) => {
+                e.target.disabled = true;
+                try {
+                  await updateDoc(doc(db, 'users', u.uid), { isAdmin: !u.isAdmin });
+                  logAdminAction(u.isAdmin ? 'admin_revoked' : 'admin_granted', u.uid, u.name);
+                  u.isAdmin = !u.isAdmin;
+                  refreshList();
+                } catch (err) { e.target.disabled = false; }
+              }
+            }));
+          }
         }
         resultsContainer.appendChild(row);
       });
@@ -2246,6 +2283,7 @@ function AdminScreen() {
           if (!confirm('Supprimer définitivement "' + ev.title + '" ?')) return;
           try {
             await deleteDoc(doc(db, 'events', ev.id));
+            logAdminAction('event_deleted', ev.id, ev.title);
             state.events = state.events.filter(x => x.id !== ev.id);
             refreshEvents();
           } catch (err) { console.error(err); }
@@ -2256,6 +2294,45 @@ function AdminScreen() {
   }
   adminRefs.refreshEvents = refreshEvents;
   refreshEvents();
+
+  // --- Journal d'activité (traçabilité, réservé au créateur) ---
+  if (state.profile.isCreator) {
+    screen.appendChild(el('h4', {text: "Journal d'activité (30 dernières actions)", style: 'font-family:Orbitron,sans-serif; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin:26px 0 12px;'}));
+    const logsContainer = el('div', {});
+    screen.appendChild(logsContainer);
+    const ACTION_LABELS = {
+      organizer_verified: 'a vérifié l\'organisateur',
+      account_banned: 'a bloqué le compte',
+      account_unbanned: 'a débloqué le compte',
+      account_deleted: 'a supprimé le compte',
+      report_resolved: 'a traité un signalement sur',
+      event_deleted: 'a supprimé la soirée',
+      admin_granted: 'a nommé admin',
+      admin_revoked: 'a retiré les droits admin de'
+    };
+    function refreshLogs() {
+      logsContainer.innerHTML = '';
+      if (state.adminLogs === null) {
+        logsContainer.appendChild(el('div', {class: 'empty', text: 'Chargement…', style: 'padding:14px 0;'}));
+        return;
+      }
+      if (state.adminLogs.length === 0) {
+        logsContainer.appendChild(el('div', {class: 'empty', text: 'Aucune action enregistrée.', style: 'padding:14px 0;'}));
+        return;
+      }
+      state.adminLogs.forEach(l => {
+        const d = new Date(l.timestamp);
+        const dateStr = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+        logsContainer.appendChild(el('div', {class: 'event-card'}, [
+          el('div', {class: 'event-date', text: dateStr}),
+          el('div', {class: 'event-meta', text: (l.actorName || '?') + ' ' + (ACTION_LABELS[l.action] || l.action) + ' "' + (l.targetName || '?') + '"'})
+        ]));
+      });
+    }
+    adminRefs.refreshLogs = refreshLogs;
+    refreshLogs();
+    if (state.adminLogs === null) loadAdminLogs();
+  }
 
   return screen;
 }
