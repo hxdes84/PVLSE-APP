@@ -484,6 +484,16 @@ function friendlyAuthError(e) {
   return AUTH_ERROR_MESSAGES[e.code] || ('Erreur : ' + e.message);
 }
 
+function getRecentMapSearches() {
+  try { return JSON.parse(localStorage.getItem('pulse-recent-map-searches') || '[]'); } catch (e) { return []; }
+}
+function saveRecentMapSearch(city) {
+  let list = getRecentMapSearches().filter(c => c.toLowerCase() !== city.toLowerCase());
+  list.unshift(city);
+  list = list.slice(0, 5);
+  try { localStorage.setItem('pulse-recent-map-searches', JSON.stringify(list)); } catch (e) {}
+}
+
 function formatEventDate(iso) {
   if (!iso) return '';
   const d = new Date(iso + 'T00:00:00');
@@ -522,6 +532,7 @@ let state = {
   dismissedNotices: JSON.parse(localStorage.getItem('pulse-dismissed-notices') || '[]'),
   cookieConsent: localStorage.getItem('pulse-cookie-consent') === '1',
   showFollowingOnly: false,
+  quickDateFilter: '',
   viewMode: 'list',
   mapSearchCity: '',
   mapSearchRadius: 50,
@@ -949,6 +960,8 @@ function CompleteProfileScreen() {
       const profile = { name, role: state.pendingRole, danceStyles: state.pendingStyles, favorites: [], verified: state.pendingRole === 'organizer' ? false : true };
       await setDoc(doc(db, 'users', state.user.uid), profile);
       state.profile = profile;
+      state.showOnboarding = true;
+      state.onboardingStep = 0;
       state.screen = 'feed';
       render();
     }
@@ -1155,6 +1168,20 @@ function ProfileScreen() {
       state.pendingReportsCount > 0 ? el('span', {class: 'notif-badge', text: String(state.pendingReportsCount)}) : null
     ]));
   }
+  if (!state.profile.isCreator) {
+    screen.appendChild(el('button', {
+      class: 'secondary danger-outline', text: 'Supprimer mon compte', style: 'margin-top:24px;',
+      onclick: async (e) => {
+        if (!confirm("Supprimer définitivement ton compte Pulse ? Ton profil, ta photo, tes danses et tes favoris seront effacés, et tu seras déconnecté·e. Cette action est irréversible.")) return;
+        if (!confirm("Dernière confirmation : es-tu vraiment sûr·e ? Il n'y a pas de retour en arrière possible.")) return;
+        e.target.disabled = true;
+        try {
+          await deleteUserAccount(state.user.uid);
+          await signOut(auth);
+        } catch (err) { e.target.disabled = false; alert('Une erreur est survenue, réessaie.'); }
+      }
+    }));
+  }
   return screen;
 }
 
@@ -1197,7 +1224,7 @@ function OtherProfileScreen() {
     }, iconLabel('instagram', '@' + p.instagram)));
     screen.appendChild(socialRow);
   }
-  if (p.role === 'organizer' && state.viewedProfileUid !== state.user.uid) {
+  if (state.viewedProfileUid !== state.user.uid) {
     const following = (state.profile.following || []).includes(state.viewedProfileUid);
     const followBtn = el('button', {
       class: 'secondary' + (following ? '' : ' danger-outline'), style: 'margin-top:0; margin-bottom:16px;',
@@ -1343,6 +1370,14 @@ function FeedScreen() {
       class: 'sort-chip' + (state.showFollowingOnly ? ' active' : ''), text: '★ Suivis',
       onclick: () => { state.showFollowingOnly = !state.showFollowingOnly; refreshFilterRow(); renderFeedListOnly(); }
     }));
+    filterRow.appendChild(el('span', {
+      class: 'sort-chip' + (state.quickDateFilter === 'today' ? ' active' : ''), text: "Aujourd'hui",
+      onclick: () => { state.quickDateFilter = state.quickDateFilter === 'today' ? '' : 'today'; refreshFilterRow(); renderFeedListOnly(); }
+    }));
+    filterRow.appendChild(el('span', {
+      class: 'sort-chip' + (state.quickDateFilter === 'weekend' ? ' active' : ''), text: 'Ce week-end',
+      onclick: () => { state.quickDateFilter = state.quickDateFilter === 'weekend' ? '' : 'weekend'; refreshFilterRow(); renderFeedListOnly(); }
+    }));
     DANCE_STYLES.forEach(style => {
       filterRow.appendChild(el('span', {
         class: 'sort-chip' + (state.danceFilter === style ? ' active' : ''), text: style,
@@ -1416,6 +1451,19 @@ function buildFeedList() {
     const followList = state.profile.following || [];
     events = events.filter(ev => followList.includes(ev.organizerUid));
   }
+  if (state.quickDateFilter === 'today') {
+    const todayISOStr = (() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); })();
+    events = events.filter(ev => ev.dateISO === todayISOStr);
+  } else if (state.quickDateFilter === 'weekend') {
+    const now = new Date();
+    const day = now.getDay(); // 0=dim, 6=sam
+    const daysUntilSat = (6 - day + 7) % 7;
+    const sat = new Date(now); sat.setDate(now.getDate() + daysUntilSat); sat.setHours(0,0,0,0);
+    const sun = new Date(sat); sun.setDate(sat.getDate() + 1);
+    const toISO = (d) => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    const satISO = toISO(sat), sunISO = toISO(sun);
+    events = events.filter(ev => ev.dateISO === satISO || ev.dateISO === sunISO);
+  }
   if (state.sortBy === 'popular') events.sort((a, b) => (b.attendees||[]).length - (a.attendees||[]).length);
   else if (state.sortBy === 'price') events.sort((a, b) => (a.price||0) - (b.price||0));
   else events.sort((a, b) => ((a.dateISO||'') + (a.time||'')).localeCompare((b.dateISO||'') + (b.time||'')));
@@ -1428,6 +1476,8 @@ function buildFeedList() {
     const attendees = ev.attendees || [];
     const going = attendees.some(a => a.uid === state.user.uid);
     const isFav = (state.profile.favorites || []).includes(ev.id);
+    const isFull = ev.capacity && attendees.length >= ev.capacity;
+    const isNew = ev.createdAt && (Date.now() - ev.createdAt) < 24 * 60 * 60 * 1000;
     const card = el('div', { class: 'event-card', onclick: () => { state.currentEventId = ev.id; state.screen = 'detail'; render(); } }, [
       ev.coverImage ? el('div', {style: `width:100%; height:90px; border-radius:6px; margin-bottom:10px; background:url(${ev.coverImage}) center/cover no-repeat;`}) : null,
       el('button', {
@@ -1452,6 +1502,8 @@ function buildFeedList() {
       card.appendChild(dwrap);
     }
     if (ev.dept) card.insertBefore(el('div', {class: 'dept-badge', text: ev.dept}), card.firstChild);
+    if (isFull) card.insertBefore(el('div', {class: 'cancelled-badge', text: 'Complet', style: 'color:var(--muted); border-color:var(--line);'}), card.firstChild);
+    if (isNew) card.insertBefore(el('div', {class: 'dept-badge', text: '✨ Nouveau', style: 'border-color:var(--pink-dim); color:var(--pink);'}), card.firstChild);
     if (going) card.appendChild(el('div', {class: 'event-going', text: '✓ Tu y vas'}));
     frag.appendChild(card);
   });
@@ -1594,6 +1646,17 @@ function MapFullScreen() {
   const searchBtn = el('button', {class: 'geo-search-btn', text: state.mapSearching ? '…' : 'Chercher', onclick: () => runGeoSearch()});
 
   searchPanel.appendChild(el('div', {class: 'geo-search-row'}, [cityInput, radiusSelect, searchBtn]));
+  const recentSearches = getRecentMapSearches();
+  if (recentSearches.length && !state.mapSearchLabel) {
+    const recentRow = el('div', {style: 'display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;'});
+    recentSearches.forEach(city => {
+      recentRow.appendChild(el('span', {
+        class: 'sort-chip', text: city, style: 'font-size:12px; padding:5px 12px;',
+        onclick: () => { state.mapSearchCity = city; runGeoSearch(); }
+      }));
+    });
+    searchPanel.appendChild(recentRow);
+  }
   controls.appendChild(searchPanel);
 
   if (state.mapSearchLabel) {
@@ -1630,6 +1693,7 @@ function MapFullScreen() {
     if (!coords) { state.mapSearchError = 'Ville introuvable.'; render(); return; }
     state.mapSearchCenter = coords;
     state.mapSearchLabel = city;
+    saveRecentMapSearch(city);
     render();
   }
 }
@@ -1800,18 +1864,23 @@ function DetailScreen() {
     if (currentAttendees.length === 0) {
       attListItems.appendChild(el('div', {class: 'empty', text: "Personne pour l'instant."}));
     } else {
-      currentAttendees.forEach(a => attListItems.appendChild(el('span', {
-        class: 'attendee-chip', text: a.name,
-        onclick: async () => {
-          try {
-            const snap = await getDoc(doc(db, 'users', a.uid));
-            state.viewedProfile = snap.exists() ? snap.data() : null;
-            state.viewedProfileUid = a.uid;
-          } catch(e) { state.viewedProfile = null; }
-          state.screen = 'other-profile';
-          render();
-        }
-      })));
+      const followList = state.profile.following || [];
+      currentAttendees.forEach(a => {
+        const isFollowed = followList.includes(a.uid);
+        attListItems.appendChild(el('span', {
+          class: 'attendee-chip', text: (isFollowed ? '★ ' : '') + a.name,
+          style: isFollowed ? 'border-color:var(--pink-dim); color:var(--pink);' : '',
+          onclick: async () => {
+            try {
+              const snap = await getDoc(doc(db, 'users', a.uid));
+              state.viewedProfile = snap.exists() ? snap.data() : null;
+              state.viewedProfileUid = a.uid;
+            } catch(e) { state.viewedProfile = null; }
+            state.screen = 'other-profile';
+            render();
+          }
+        }));
+      });
     }
     participantsRow.textContent = currentAttendees.length + (ev.capacity ? ' / ' + ev.capacity + ' places' : ' inscrit·e·s');
   }
@@ -2484,6 +2553,9 @@ function EventFormScreen(existingEvent, mode) {
     danceWrap.appendChild(chip);
   });
   screen.appendChild(danceWrap);
+  if (!isEdit) {
+    screen.appendChild(el('p', {class: 'sub', style: 'font-size:13px; margin-top:-6px; margin-bottom:14px;', text: '💡 Tu peux limiter le nombre de places et répéter cette soirée chaque semaine juste en dessous.'}));
+  }
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Prix'}), priceInput]));
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Places max (optionnel)'}), capacityInput]));
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Description'}), descInput]));
