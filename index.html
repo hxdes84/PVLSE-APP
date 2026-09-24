@@ -531,6 +531,8 @@ let state = {
   cookieConsent: localStorage.getItem('pulse-cookie-consent') === '1',
   showFollowingOnly: false,
   quickDateFilter: '',
+  prefillLoginEmail: '',
+  showLoginSuggestion: false,
   viewMode: 'list',
   mapSearchCity: '',
   mapSearchRadius: 50,
@@ -772,7 +774,8 @@ function LoginScreen() {
   screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
   screen.appendChild(el('h1', {text: 'Connexion'}));
   if (state.authError) screen.appendChild(el('div', {class: 'error-msg', text: state.authError}));
-  const emailInput = el('input', {placeholder: 'Email', type: 'email'});
+  const emailInput = el('input', {placeholder: 'Email', type: 'email', value: state.prefillLoginEmail || ''});
+  state.prefillLoginEmail = '';
   const { input: passInput, wrap: passWrap } = passwordField('Mot de passe');
   screen.appendChild(el('div', {class: 'field'}, [emailInput]));
   screen.appendChild(passWrap);
@@ -831,6 +834,12 @@ function SignupScreen() {
   screen.appendChild(el('div', {class: 'brand', text: 'PULSE'}));
   screen.appendChild(el('h1', {text: 'Créer un compte'}));
   if (state.authError) screen.appendChild(el('div', {class: 'error-msg', text: state.authError}));
+  if (state.showLoginSuggestion) {
+    screen.appendChild(el('button', {
+      class: 'secondary', text: 'Se connecter à la place', style: 'margin-top:0; margin-bottom:16px;',
+      onclick: () => { state.authError = ''; state.showLoginSuggestion = false; state.screen = 'login'; render(); }
+    }));
+  }
 
   const nameInput = el('input', {placeholder: 'Ton prénom', maxlength: '30'});
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Prénom'}), nameInput]));
@@ -902,6 +911,8 @@ function SignupScreen() {
         state.onboardingStep = 0;
       } catch (e) {
         state.authError = friendlyAuthError(e);
+        state.showLoginSuggestion = (e.code === 'auth/email-already-in-use');
+        if (state.showLoginSuggestion) state.prefillLoginEmail = emailInput.value.trim();
         btn.disabled = false; btn.textContent = 'Créer mon compte';
         render();
       }
@@ -1549,9 +1560,11 @@ function ensureMapLibreLoaded() {
   mapLibreLoadPromise = new Promise((resolve, reject) => {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
+    link.crossOrigin = 'anonymous';
     link.href = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css';
     document.head.appendChild(link);
     const script = document.createElement('script');
+    script.crossOrigin = 'anonymous';
     script.src = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js';
     script.onload = () => resolve();
     script.onerror = () => reject(new Error('maplibre-load-failed'));
@@ -1909,9 +1922,11 @@ function DetailScreen() {
     }
     screen.appendChild(el('button', {
       class: 'secondary danger-outline', text: 'Supprimer définitivement', style: 'margin-top:0;',
-      onclick: async () => {
+      onclick: async (e) => {
         if (!confirm('Supprimer définitivement cette soirée ?')) return;
-        try { await deleteDoc(doc(db, 'events', ev.id)); state.screen = 'feed'; render(); } catch(e) { console.error(e); }
+        if (e.target.disabled) return;
+        e.target.disabled = true;
+        try { await deleteDoc(doc(db, 'events', ev.id)); state.screen = 'feed'; render(); } catch(err) { console.error(err); e.target.disabled = false; }
       }
     }));
   }
