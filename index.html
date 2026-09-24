@@ -83,13 +83,13 @@
   .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
   .topbar .brand { margin-bottom: 0; }
   .topbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .role-pill { font-size: 12px; color: var(--muted); border: 1px solid var(--line); padding: 4px 10px; border-radius: 20px; font-weight: 600; letter-spacing: 0.02em; }
-  .icon-btn { background: none; border: 1px solid var(--line); color: var(--muted); font-size: 13px; padding: 5px 11px; border-radius: 20px; cursor: pointer; font-weight: 600; }
+  .role-pill { font-size: 12px; color: var(--muted); border: 1px solid var(--line); padding: 4px 10px; border-radius: 6px; font-weight: 600; letter-spacing: 0.02em; }
+  .icon-btn { background: none; border: 1px solid var(--line); color: var(--muted); font-size: 13px; padding: 5px 11px; border-radius: 6px; cursor: pointer; font-weight: 600; }
 
   .search-input { margin-bottom: 14px; }
   .filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
   .sort-row { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
-  .sort-chip { font-size: 13px; border: 1px solid var(--line); color: var(--muted); padding: 7px 14px; border-radius: 20px; cursor: pointer; font-weight: 600; }
+  .sort-chip { font-size: 13px; border: 1px solid var(--line); color: var(--muted); padding: 7px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; }
   .sort-chip.active { border-color: var(--pink); color: var(--pink); background: rgba(255,47,168,0.05); }
 
   .event-card { border-top: 1px solid var(--line); padding: 18px 0; cursor: pointer; position: relative; background: var(--card-bg); }
@@ -122,9 +122,9 @@
 
   .attendee-list { margin: 20px 0; }
   .attendee-list h4 { font-family: 'Orbitron', sans-serif; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; font-weight: 600; }
-  .attendee-chip { display: inline-block; font-size: 13px; background: rgba(255,47,168,0.06); border: 1px solid var(--pink-dim); color: var(--paper); padding: 5px 12px; border-radius: 20px; margin: 0 6px 6px 0; font-weight: 600; cursor: pointer; }
+  .attendee-chip { display: inline-block; font-size: 13px; background: rgba(255,47,168,0.06); border: 1px solid var(--pink-dim); color: var(--paper); padding: 5px 12px; border-radius: 6px; margin: 0 6px 6px 0; font-weight: 600; cursor: pointer; }
 
-  .style-chip { display: inline-block; font-size: 13px; border: 1px solid var(--line); color: var(--muted); padding: 7px 14px; border-radius: 20px; margin: 0 8px 8px 0; cursor: pointer; font-weight: 600; transition: all 0.15s ease; }
+  .style-chip { display: inline-block; font-size: 13px; border: 1px solid var(--line); color: var(--muted); padding: 7px 14px; border-radius: 6px; margin: 0 8px 8px 0; cursor: pointer; font-weight: 600; transition: all 0.15s ease; }
   .style-chip.active { border-color: var(--blue); color: var(--blue); background: rgba(47,217,255,0.05); box-shadow: 0 0 10px rgba(47,217,255,0.15); }
   .style-wrap { display: flex; flex-wrap: wrap; margin-bottom: 20px; }
 
@@ -296,7 +296,7 @@
     border-radius: 10px; border: 1px solid var(--pink-dim); box-shadow: 0 0 14px rgba(255,47,168,0.11);
   }
   .map-nav-btn {
-    font-size: 13px; font-weight: 700; padding: 6px 14px; border-radius: 20px; cursor: pointer;
+    font-size: 13px; font-weight: 700; padding: 6px 14px; border-radius: 6px; cursor: pointer;
     color: var(--blue); border: 1px solid var(--blue-dim); background: rgba(47,217,255,0.05);
     box-shadow: 0 0 10px rgba(47,217,255,0.15); text-shadow: 0 0 8px rgba(47,217,255,0.3);
     letter-spacing: 0.02em;
@@ -456,8 +456,6 @@ Tu peux demander l'accès, la rectification ou la suppression de tes données à
 
 Pulse n'utilise aucun cookie publicitaire ou traceur analytique.
 
-—
-
 CONDITIONS D'UTILISATION
 
 En créant un compte, tu t'engages à fournir des informations exactes.
@@ -468,7 +466,7 @@ Danseurs : le "RSVP" est une indication d'intention, pas un engagement contractu
 
 Pulse ne garantit pas la tenue effective des soirées listées ni leur sécurité. Pulse se réserve le droit de retirer tout contenu ou compte ne respectant pas ces règles.
 
-Cette version alpha est un test — les fonctionnalités et conditions peuvent évoluer.`;
+Cette version alpha est un test. Les fonctionnalités et conditions peuvent évoluer.`;
 
 const AUTH_ERROR_MESSAGES = {
   'auth/email-already-in-use': 'Cet email est déjà utilisé.',
@@ -476,7 +474,7 @@ const AUTH_ERROR_MESSAGES = {
   'auth/user-not-found': "Aucun compte ne correspond à cet email.",
   'auth/wrong-password': 'Mot de passe incorrect.',
   'auth/invalid-credential': 'Email ou mot de passe incorrect.',
-  'auth/too-many-requests': 'Trop de tentatives — réessaie dans quelques minutes.',
+  'auth/too-many-requests': 'Trop de tentatives, réessaie dans quelques minutes.',
   'auth/network-request-failed': 'Problème de connexion internet.',
   'auth/weak-password': 'Mot de passe trop faible (6 caractères minimum).'
 };
@@ -685,7 +683,7 @@ function render() {
 
   if (!state.cookieConsent) {
     app.appendChild(el('div', {class: 'cookie-banner'}, [
-      el('div', {text: "Pulse utilise uniquement le stockage nécessaire à ton compte et tes préférences — aucun cookie publicitaire, aucun traceur."}),
+      el('div', {text: "Pulse utilise uniquement le stockage nécessaire à ton compte et tes préférences. Aucun cookie publicitaire, aucun traceur."}),
       el('button', {class: 'primary', text: 'OK, compris', style: 'margin-top:10px;', onclick: () => {
         state.cookieConsent = true;
         localStorage.setItem('pulse-cookie-consent', '1');
@@ -815,7 +813,7 @@ function ResetPasswordScreen() {
       btn.disabled = true; btn.textContent = 'Envoi…';
       try {
         await sendPasswordResetEmail(auth, emailInput.value.trim());
-        msgBox.appendChild(el('div', {class: 'info-msg', text: '✓ Email envoyé — vérifie ta boîte de réception (et tes spams).'}));
+        msgBox.appendChild(el('div', {class: 'info-msg', text: '✓ Email envoyé. Vérifie ta boîte de réception (et tes spams).'}));
         btn.textContent = 'Envoyé ✓';
       } catch (e) {
         msgBox.appendChild(el('div', {class: 'error-msg', text: friendlyAuthError(e)}));
@@ -1039,7 +1037,7 @@ function ProfileScreen() {
       avatarStatus.textContent = '✓ Photo mise à jour';
       setTimeout(() => { avatarStatus.textContent = ''; }, 2000);
     } catch (e) {
-      avatarStatus.textContent = "Échec — réessaie avec une autre photo.";
+      avatarStatus.textContent = "Échec, réessaie avec une autre photo.";
     }
   };
   const avatarBtns = el('div', {}, [
@@ -1078,7 +1076,7 @@ function ProfileScreen() {
       try {
         await sendEmailVerification(state.user);
         resendBtn.textContent = "Renvoyer l'email de vérification";
-        verifyStatus.textContent = '✓ Email envoyé — vérifie ta boîte de réception (et tes spams).';
+        verifyStatus.textContent = '✓ Email envoyé. Vérifie ta boîte de réception (et tes spams).';
       } catch (e) {
         resendBtn.textContent = "Renvoyer l'email de vérification";
         verifyStatus.textContent = "✗ " + friendlyAuthError(e);
@@ -1665,7 +1663,7 @@ function MapFullScreen() {
     pinIcon2.style.cssText = 'display:inline-flex; vertical-align:-2px; margin-right:5px;';
     controls.appendChild(el('div', {class: 'map-floating-label'}, [
       pinIcon2,
-      document.createTextNode(state.mapSearchLabel + ' — ' + state.mapSearchRadius + ' km'),
+      document.createTextNode(state.mapSearchLabel + ' · ' + state.mapSearchRadius + ' km'),
       el('span', {text: ' ✕', style: 'color:var(--pink); cursor:pointer; font-weight:700; margin-left:8px;', onclick: () => {
         state.mapSearchCenter = null; state.mapSearchLabel = ''; state.mapSearchCity = ''; render();
       }})
@@ -1814,7 +1812,7 @@ function DetailScreen() {
     render();
   };
   screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Organisé par'}), organizerNameSpan]));
-  screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Département'}), el('div', {text: ev.dept || '—'})]));
+  screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Département'}), el('div', {text: ev.dept || '-'})]));
   screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Prix'}), el('div', {text: ev.price ? ev.price + ' €' : 'Gratuit'})]));
   const participantsRow = el('div', {text: attendees.length + (ev.capacity ? ' / ' + ev.capacity + ' places' : ' inscrit·e·s')});
   screen.appendChild(el('div', {class: 'detail-row'}, [el('div', {class: 'detail-label', text: 'Participants'}), participantsRow]));
@@ -1923,7 +1921,7 @@ function DetailScreen() {
     const isFull = ev.capacity && attendees.length >= ev.capacity && !currentGoing;
     const rsvpBtn = el('button', {
       class: 'primary' + (currentGoing ? ' going' : ''),
-      text: isFull ? 'Complet' : (currentGoing ? '✓ Tu y vas — annuler' : "J'y vais"),
+      text: isFull ? 'Complet' : (currentGoing ? '✓ Tu y vas · Annuler' : "J'y vais"),
       onclick: async () => {
         if (rsvpBtn.disabled) return;
         let newAttendees;
@@ -1935,7 +1933,7 @@ function DetailScreen() {
         ev.attendees = newAttendees;
         currentGoing = !currentGoing;
         rsvpBtn.className = 'primary' + (currentGoing ? ' going' : '');
-        rsvpBtn.textContent = currentGoing ? '✓ Tu y vas — annuler' : "J'y vais";
+        rsvpBtn.textContent = currentGoing ? '✓ Tu y vas · Annuler' : "J'y vais";
         refreshAttendees(newAttendees);
         try { await updateDoc(doc(db, 'events', ev.id), { attendees: newAttendees }); flashSaved(); } catch (err) { console.error('Échec RSVP', err); }
       }
@@ -2192,7 +2190,7 @@ function AdminScreen() {
       const row = el('div', {class: 'event-card'}, [
         el('div', {class: 'cancelled-badge', text: r.type === 'user' ? 'Profil signalé' : 'Soirée signalée'}),
         el('div', {class: 'event-title', text: r.targetName || '(sans nom)'}),
-        el('div', {class: 'event-meta', text: 'Signalé par ' + (r.reporterName || '?') + (r.reason ? ' — ' + r.reason : '')})
+        el('div', {class: 'event-meta', text: 'Signalé par ' + (r.reporterName || '?') + (r.reason ? ' · ' + r.reason : '')})
       ]);
       const actionRow = el('div', {style: 'display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;'});
       actionRow.appendChild(el('button', {
@@ -2287,7 +2285,7 @@ function AdminScreen() {
       searchBtn.textContent = state.adminLoading ? 'Recherche…' : 'Rechercher / Rafraîchir';
       resultsContainer.innerHTML = '';
       if (bucket.error) {
-        resultsContainer.appendChild(el('div', {class: 'error-msg', text: "Index Firestore manquant pour cette requête — vérifie la console du navigateur pour le lien de création automatique fourni par Firebase (une seule fois à faire)."}));
+        resultsContainer.appendChild(el('div', {class: 'error-msg', text: "Index Firestore manquant pour cette requête. Vérifie la console du navigateur pour le lien de création automatique fourni par Firebase (une seule fois à faire)."}));
       }
       bucket.items.forEach(u => {
         const banned = u.banned === true;
@@ -2488,7 +2486,7 @@ function EventFormScreen(existingEvent, mode) {
       coverPreview.textContent = '';
       coverStatus.textContent = '✓ Image prête (sera enregistrée à la publication)';
     } catch (e) {
-      coverStatus.textContent = "Échec — réessaie avec une autre image.";
+      coverStatus.textContent = "Échec, réessaie avec une autre image.";
     }
   };
   screen.appendChild(coverPreview);
@@ -2536,7 +2534,7 @@ function EventFormScreen(existingEvent, mode) {
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Heure'}), timeInput]));
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Lieu'}), placeInput]));
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Adresse précise (recommandé)'}), addressInput]));
-  screen.appendChild(el('p', {class: 'sub', style: 'font-size:13px; margin-top:-12px; margin-bottom:16px;', text: "Numéro, rue et ville si possible — la soirée sera positionnée beaucoup plus précisément sur la carte. Sans ça, on se base sur le champ Lieu, moins fiable."}));
+  screen.appendChild(el('p', {class: 'sub', style: 'font-size:13px; margin-top:-12px; margin-bottom:16px;', text: "Numéro, rue et ville si possible : la soirée sera positionnée beaucoup plus précisément sur la carte. Sans ça, on se base sur le champ Lieu, moins fiable."}));
   screen.appendChild(el('div', {class: 'field'}, [el('label', {text: 'Département'}), deptSelect]));
   screen.appendChild(el('label', {text: 'Danse(s) au programme'}));
   const danceWrap = el('div', {class: 'style-wrap'});
